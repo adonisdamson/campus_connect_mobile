@@ -1,0 +1,8 @@
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Campus Connect mark: two campus "nodes" linked — a filled origin and an
+       open destination ring, joined by a live connection. Single-colour so it
+       tints per flavour (lime / amber / violet). Holes are true transparency. -->
+  <line x1="34" y1="34" x2="62" y2="62" stroke="#CBFF3C" stroke-width="13" stroke-linecap="round"/>
+  <circle cx="34" cy="34" r="12.5" fill="#CBFF3C"/>
+  <circle cx="62" cy="62" r="13.5" fill="none" stroke="#CBFF3C" stroke-width="7"/>
+</svg>

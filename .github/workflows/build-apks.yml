@@ -1,0 +1,47 @@
+name: Build APKs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        flavor: [user, partner, admin]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.1'
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      # Build the release APK for this flavor. Falls back to debug signing when no
+      # keystore is present (production signing is added via repo secrets later).
+      - name: Build ${{ matrix.flavor }} APK
+        run: >-
+          flutter build apk --release
+          --flavor ${{ matrix.flavor }}
+          -t lib/main_${{ matrix.flavor }}.dart
+          --dart-define=API_BASE_URL=${{ secrets.API_BASE_URL }}
+          --dart-define=TOMTOM_API_KEY=${{ secrets.TOMTOM_API_KEY }}
+          --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+          --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: campus-connect-${{ matrix.flavor }}-apk
+          path: build/app/outputs/flutter-apk/app-${{ matrix.flavor }}-release.apk
+          if-no-files-found: error
