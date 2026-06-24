@@ -21,6 +21,7 @@ class AppUser {
   final String? email, phone, fullName, profilePhoto, campusRole, role, referralCode, universityId;
   final bool isVerified, isDriver, isVendor, isServiceProvider;
   final double rating;
+  final List<String> adminPermissions;
 
   AppUser.fromJson(Map j)
       : id = j['id'],
@@ -36,7 +37,12 @@ class AppUser {
         isDriver = j['isDriver'] ?? false,
         isVendor = j['isVendor'] ?? false,
         isServiceProvider = j['isServiceProvider'] ?? false,
-        rating = _d(j['rating']);
+        rating = _d(j['rating']),
+        adminPermissions = ((j['adminPermissions'] as List?) ?? []).map((e) => '$e').toList();
+
+  bool get isSuperAdmin => role == 'SUPER_ADMIN';
+  bool get isAdmin => role == 'ADMIN' || role == 'SUPER_ADMIN';
+  bool can(String permission) => isSuperAdmin || adminPermissions.contains(permission);
 
   String get initials {
     final n = (fullName ?? email ?? 'U').trim();

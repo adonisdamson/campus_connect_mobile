@@ -31,12 +31,6 @@ android {
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        // One universal APK, but only real-device ABIs (drops the x86_64 emulator
-        // slice). Covers every modern arm64 phone plus older armeabi-v7a devices,
-        // and is roughly a third smaller than a full universal build.
-        ndk {
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
-        }
     }
 
     flavorDimensions += "app"

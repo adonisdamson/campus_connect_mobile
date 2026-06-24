@@ -35,15 +35,16 @@ jobs:
 
       # Universal release APK (all ABIs in one file — installs on any device,
       # including new arm64 phones). No --split-per-abi, so it's a single APK.
+      # Single APK targeting arm64 (every Android phone from ~2017 on). No third
+      # party keys are baked in — search/routing/uploads all go through the
+      # backend. Only the public API base URL is provided.
       - name: Build ${{ matrix.flavor }} APK
         run: >-
           flutter build apk --release
           --flavor ${{ matrix.flavor }}
           -t lib/main_${{ matrix.flavor }}.dart
+          --target-platform android-arm64
           --dart-define=API_BASE_URL=${{ secrets.API_BASE_URL }}
-          --dart-define=TOMTOM_API_KEY=${{ secrets.TOMTOM_API_KEY }}
-          --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }}
-          --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
 
       - name: Rename for release
         run: |

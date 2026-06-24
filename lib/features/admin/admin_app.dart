@@ -14,31 +14,47 @@ class AdminShell extends StatefulWidget {
   State<AdminShell> createState() => _AdminShellState();
 }
 
+class _AdminTab {
+  final Widget page;
+  final IconData icon, selected;
+  final String label;
+  const _AdminTab(this.page, this.icon, this.selected, this.label);
+}
+
 class _AdminShellState extends State<AdminShell> {
   int _i = 0;
-  final _pages = const [_Overview(), _Users(), _Verify(), _Orders(), _Reports()];
 
   @override
   Widget build(BuildContext context) {
+    final u = context.watch<AuthProvider>().user;
+    // Tabs follow the admin's granted permissions; super admins see everything
+    // plus the Admins management area.
+    final tabs = <_AdminTab>[
+      const _AdminTab(_Overview(), PhosphorIconsRegular.chartBar, PhosphorIconsFill.chartBar, 'Overview'),
+      if (u?.can('users') ?? false) const _AdminTab(_Users(), PhosphorIconsRegular.users, PhosphorIconsFill.users, 'Users'),
+      if (u?.can('verifications') ?? false) const _AdminTab(_Verify(), PhosphorIconsRegular.sealCheck, PhosphorIconsFill.sealCheck, 'Verify'),
+      if (u?.can('orders') ?? false) const _AdminTab(_Orders(), PhosphorIconsRegular.package, PhosphorIconsFill.package, 'Orders'),
+      if (u?.can('reports') ?? false) const _AdminTab(_Reports(), PhosphorIconsRegular.flag, PhosphorIconsFill.flag, 'Reports'),
+      if (u?.isSuperAdmin ?? false) const _AdminTab(_Admins(), PhosphorIconsRegular.shieldStar, PhosphorIconsFill.shieldStar, 'Admins'),
+    ];
+    final idx = _i.clamp(0, tabs.length - 1);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Operations'),
         actions: [IconButton(onPressed: () => context.read<AuthProvider>().signOut(), icon: const Icon(PhosphorIconsRegular.signOut))],
       ),
-      body: IndexedStack(index: _i, children: _pages),
-      bottomNavigationBar: NavigationBar(
-        backgroundColor: CC.surface,
-        height: 66,
-        selectedIndex: _i,
-        onDestinationSelected: (v) { Haptics.select(); setState(() => _i = v); },
-        destinations: const [
-          NavigationDestination(icon: Icon(PhosphorIconsRegular.chartBar), selectedIcon: Icon(PhosphorIconsFill.chartBar, color: CC.violet), label: 'Overview'),
-          NavigationDestination(icon: Icon(PhosphorIconsRegular.users), selectedIcon: Icon(PhosphorIconsFill.users, color: CC.violet), label: 'Users'),
-          NavigationDestination(icon: Icon(PhosphorIconsRegular.sealCheck), selectedIcon: Icon(PhosphorIconsFill.sealCheck, color: CC.violet), label: 'Verify'),
-          NavigationDestination(icon: Icon(PhosphorIconsRegular.package), selectedIcon: Icon(PhosphorIconsFill.package, color: CC.violet), label: 'Orders'),
-          NavigationDestination(icon: Icon(PhosphorIconsRegular.flag), selectedIcon: Icon(PhosphorIconsFill.flag, color: CC.violet), label: 'Reports'),
-        ],
-      ),
+      body: IndexedStack(index: idx, children: tabs.map((t) => t.page).toList()),
+      bottomNavigationBar: tabs.length < 2
+          ? null
+          : NavigationBar(
+              backgroundColor: CC.surface,
+              height: 66,
+              selectedIndex: idx,
+              onDestinationSelected: (v) { Haptics.select(); setState(() => _i = v); },
+              destinations: tabs
+                  .map((t) => NavigationDestination(icon: Icon(t.icon), selectedIcon: Icon(t.selected, color: CC.violet), label: t.label))
+                  .toList(),
+            ),
     );
   }
 }
@@ -332,6 +348,146 @@ class _VerifyState extends State<_Verify> {
           ]),
         ])));
       }).toList()),
+    );
+  }
+}
+
+// ── Admins (super admin only: add admins + assign permissions) ──
+class _Admins extends StatefulWidget {
+  const _Admins();
+  @override
+  State<_Admins> createState() => _AdminsState();
+}
+
+class _AdminsState extends State<_Admins> {
+  List _admins = [];
+  List<String> _available = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final res = await Api.instance.get('/admin/admins');
+      _admins = res['admins'] as List? ?? [];
+      _available = ((res['availablePermissions'] as List?) ?? []).map((e) => '$e').toList();
+    } catch (_) {}
+    if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _editor({Map? existing}) async {
+    final emailCtrl = TextEditingController(text: existing?['email'] ?? '');
+    final chosen = <String>{...(((existing?['adminPermissions'] as List?) ?? []).map((e) => '$e'))};
+    final saved = await showModalBottomSheet<bool>(
+      context: context, isScrollControlled: true, backgroundColor: CC.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setSheet) {
+        return Padding(
+          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(existing == null ? 'Add admin' : 'Edit ${existing['email']}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+            const SizedBox(height: 14),
+            if (existing == null)
+              CCField('User email', emailCtrl, icon: PhosphorIconsRegular.envelope, keyboard: TextInputType.emailAddress)
+            else
+              Text('Role: ${existing['role']}', style: const TextStyle(color: CC.textDim)),
+            const SizedBox(height: 16),
+            const Text('Areas they can access', style: TextStyle(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            Wrap(spacing: 8, runSpacing: 8, children: _available.map((p) {
+              final sel = chosen.contains(p);
+              return FilterChip(
+                label: Text(p),
+                selected: sel,
+                onSelected: (v) => setSheet(() => v ? chosen.add(p) : chosen.remove(p)),
+                backgroundColor: CC.surfaceHi,
+                selectedColor: CC.violet,
+                labelStyle: TextStyle(color: sel ? CC.ink : CC.text, fontWeight: FontWeight.w600, fontSize: 12.5),
+                checkmarkColor: CC.ink,
+              );
+            }).toList()),
+            const SizedBox(height: 20),
+            CCButton(existing == null ? 'Grant access' : 'Save', onTap: () => Navigator.pop(ctx, true)),
+          ]),
+        );
+      }),
+    );
+    if (saved != true) return;
+    try {
+      if (existing == null) {
+        await Api.instance.post('/admin/admins', {'email': emailCtrl.text.trim(), 'permissions': chosen.toList()});
+      } else {
+        await Api.instance.patch('/admin/admins/${existing['id']}', {'permissions': chosen.toList()});
+      }
+      _load();
+    } on ApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message), backgroundColor: CC.danger));
+    }
+  }
+
+  Future<void> _remove(Map a) async {
+    final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+      backgroundColor: CC.surface,
+      title: Text('Revoke ${a['email']}?'),
+      content: const Text('They will lose all admin access.'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Revoke', style: TextStyle(color: CC.danger, fontWeight: FontWeight.w700))),
+      ],
+    ));
+    if (ok != true) return;
+    try {
+      await Api.instance.delete('/admin/admins/${a['id']}');
+      _load();
+    } on ApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message), backgroundColor: CC.danger));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return Skeletons.list();
+    return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: CC.violet, foregroundColor: CC.ink,
+        icon: const Icon(PhosphorIconsBold.plus),
+        label: const Text('Add admin', style: TextStyle(fontWeight: FontWeight.w800)),
+        onPressed: () => _editor(),
+      ),
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(padding: const EdgeInsets.all(16), children: _admins.map((a) {
+          final isSuper = a['role'] == 'SUPER_ADMIN';
+          final perms = ((a['adminPermissions'] as List?) ?? []).join(', ');
+          return Padding(padding: const EdgeInsets.only(bottom: 12), child: CCCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Icon(isSuper ? PhosphorIconsFill.shieldStar : PhosphorIconsFill.shieldCheck, color: CC.violet, size: 20),
+              const SizedBox(width: 10),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(a['fullName'] ?? a['email'] ?? 'Admin', style: const TextStyle(fontWeight: FontWeight.w700)),
+                Text(a['email'] ?? '', style: const TextStyle(color: CC.textDim, fontSize: 12.5)),
+              ])),
+              Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: CC.surfaceHi, borderRadius: BorderRadius.circular(8)),
+                child: Text(isSuper ? 'SUPER' : 'ADMIN', style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: CC.violet))),
+            ]),
+            if (!isSuper) ...[
+              const SizedBox(height: 10),
+              Text(perms.isEmpty ? 'No areas assigned' : 'Access: $perms', style: const TextStyle(color: CC.textDim, fontSize: 12.5)),
+              const SizedBox(height: 10),
+              Row(children: [
+                Expanded(child: CCButton('Edit', outlined: true, icon: PhosphorIconsRegular.pencilSimple, onTap: () => _editor(existing: a))),
+                const SizedBox(width: 10),
+                Expanded(child: CCButton('Revoke', outlined: true, icon: PhosphorIconsRegular.trash, onTap: () => _remove(a))),
+              ]),
+            ],
+          ])));
+        }).toList()),
+      ),
     );
   }
 }

@@ -28,17 +28,9 @@ class AppConfig {
   static String get socketUrl =>
       apiBaseUrl.replaceAll('/api/v1', '');
 
-  /// TomTom key for Search (geocoding/autocomplete) and Routing (ETAs/polylines).
-  /// Free tier: 2,500 requests/day, no card, hard-stops instead of billing.
-  /// NOTE: client keys ship in the app binary — rotate for production and prefer
-  /// overriding via --dart-define=TOMTOM_API_KEY=... Map *tiles* deliberately do
-  /// NOT use this key (tiles are high-volume and would exhaust the daily cap);
-  /// the basemap uses keyless CARTO dark tiles instead.
-  static const tomtomKey = String.fromEnvironment(
-    'TOMTOM_API_KEY',
-    defaultValue: 'XWHzpOp5QSlVqt5yRA6IYulWTvRjeieo',
-  );
-  static bool get tomtomEnabled => tomtomKey.isNotEmpty;
+  // Search + routing run through the backend's /geo proxy, so the TomTom key
+  // lives only in the backend env — never in the app binary or this repo.
+  // Map tiles use the keyless CARTO dark basemap (no key needed).
 
   /// Pilot campus (UMaT, Tarkwa) — the launch campus.
   static const double pilotLat = 5.301;

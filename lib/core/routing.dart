@@ -1,7 +1,6 @@
 import 'dart:math' as math;
-import 'package:dio/dio.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
-import 'config.dart';
+import 'api.dart';
 
 /// A computed route: the polyline points plus distance & duration.
 class RouteResult {
@@ -14,61 +13,29 @@ class RouteResult {
   double get km => distanceMeters / 1000;
 }
 
-/// Turn-by-turn polylines + ETAs for the MapLibre frontend.
-/// Provider chain: TomTom (when TOMTOM_API_KEY is set) → OSRM (free) → straight line.
+/// Polylines + ETAs via our backend's `/geo/route`, which proxies TomTom (→ OSRM
+/// → straight line) server-side — no map key in the app. Falls back to a local
+/// straight line if the backend is unreachable so the map still draws something.
 class RoutingService {
-  static String get _tomtomKey => AppConfig.tomtomKey;
-  static bool get tomtomEnabled => AppConfig.tomtomEnabled;
-
-  static final Dio _dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 8),
-    receiveTimeout: const Duration(seconds: 10),
-  ));
-
   static Future<RouteResult> route(LatLng a, LatLng b) async {
-    if (tomtomEnabled) {
-      try {
-        return await _tomtom(a, b);
-      } catch (_) {/* fall through to OSRM */}
-    }
     try {
-      return await _osrm(a, b);
-    } catch (_) {
-      return _straightLine(a, b);
-    }
-  }
-
-  // TomTom Routing API — calculateRoute with full point geometry.
-  static Future<RouteResult> _tomtom(LatLng a, LatLng b) async {
-    final url =
-        'https://api.tomtom.com/routing/1/calculateRoute/${a.latitude},${a.longitude}:${b.latitude},${b.longitude}/json';
-    final res = await _dio.get(url, queryParameters: {'key': _tomtomKey, 'travelMode': 'car', 'routeType': 'fastest'});
-    final route = res.data['routes'][0];
-    final summary = route['summary'];
-    final points = <LatLng>[];
-    for (final leg in route['legs']) {
-      for (final p in leg['points']) {
-        points.add(LatLng((p['latitude'] as num).toDouble(), (p['longitude'] as num).toDouble()));
+      final res = await Api.instance.get('/geo/route', query: {
+        'fromLat': a.latitude, 'fromLng': a.longitude,
+        'toLat': b.latitude, 'toLng': b.longitude,
+      });
+      final pts = ((res['points'] as List?) ?? [])
+          .map((p) => LatLng((p['lat'] as num).toDouble(), (p['lng'] as num).toDouble()))
+          .toList();
+      if (pts.isNotEmpty) {
+        return RouteResult(pts, (res['distanceMeters'] as num).toDouble(), (res['durationSeconds'] as num).toDouble());
       }
-    }
-    return RouteResult(points, (summary['lengthInMeters'] as num).toDouble(), (summary['travelTimeInSeconds'] as num).toDouble());
+    } catch (_) {/* fall through to straight line */}
+    return _straightLine(a, b);
   }
 
-  // OSRM public server — free, no key. GeoJSON geometry.
-  static Future<RouteResult> _osrm(LatLng a, LatLng b) async {
-    final url =
-        'https://router.project-osrm.org/route/v1/driving/${a.longitude},${a.latitude};${b.longitude},${b.latitude}';
-    final res = await _dio.get(url, queryParameters: {'overview': 'full', 'geometries': 'geojson'});
-    final route = res.data['routes'][0];
-    final coords = route['geometry']['coordinates'] as List;
-    final points = coords.map<LatLng>((c) => LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble())).toList();
-    return RouteResult(points, (route['distance'] as num).toDouble(), (route['duration'] as num).toDouble());
-  }
-
-  // Last-resort straight line with a rough campus-speed ETA (~22 km/h).
   static RouteResult _straightLine(LatLng a, LatLng b) {
     final meters = _haversine(a, b);
-    return RouteResult([a, b], meters, meters / 6.1);
+    return RouteResult([a, b], meters, meters / 6.1); // ~22 km/h campus speed
   }
 
   static double _haversine(LatLng a, LatLng b) {
