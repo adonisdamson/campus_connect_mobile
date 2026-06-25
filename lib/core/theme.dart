@@ -2,49 +2,76 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'config.dart';
 
-/// Campus Connect — "Campus Neon Editorial".
-/// Warm off-black canvas, one electric accent per flavor, oversized display
-/// type (Plus Jakarta Sans) over DM Sans body, DM Mono for numbers.
+/// Campus Connect design system — V4.
+///
+/// One main tone (warm near-black canvas), one sharp accent per flavor, generous
+/// negative space. Plus Jakarta Sans throughout (weights 500/600/700). Token
+/// NAMES are stable across the app; only values evolve here.
 class CC {
-  // Canvas
-  static const ink = Color(0xFF0E0F12); // darkest background
-  static const surface = Color(0xFF17181E); // cards
-  static const surfaceHi = Color(0xFF202128); // raised cards / inputs
-  static const line = Color(0xFF2C2E37); // hairlines
+  // ── Canvas (dark ramp — never pure black) ─────────────────────────────
+  static const ink = Color(0xFF0B0D10); // base scaffold
+  static const ink2 = Color(0xFF111318); // sections / sheets
+  static const ink3 = Color(0xFF17191E); // deeper inset panels
+  static const surface = Color(0xFF1A1D23); // cards
+  static const surfaceHi = Color(0xFF21242B); // raised cards / inputs
+  static const line = Color(0xFF262A33); // hairline borders
+  static const hair = Color(0xFF1E222A); // ultra-subtle separators
 
-  // Text
-  static const text = Color(0xFFF4F5F7);
+  // ── Text ──────────────────────────────────────────────────────────────
+  static const text = Color(0xFFF4F5F7); // soft white
   static const textDim = Color(0xFF9DA1AD);
   static const textFaint = Color(0xFF6A6E7A);
 
-  // Per-flavor accent (the differentiation anchor)
-  static const lime = Color(0xFFCBFF3C); // user — electric lime
-  static const amber = Color(0xFFFFB020); // partner — driver amber (Bolt-style)
-  static const violet = Color(0xFF8B7CFF); // admin — control violet
+  // ── Accents (the per-flavor differentiation anchor) ───────────────────
+  static const lime = Color(0xFF00C853); // user — Campus Connect brand green (matches logo)
+  static const amber = Color(0xFFFFB020); // partner — driver amber
+  static const aqua = Color(0xFF31D0E6); // admin — aqua blue (Linear/Stripe)
+  static const violet = Color(0xFF8B7CFF); // legacy alias (kept for back-compat)
 
-  // Semantic
+  // ── Semantic ───────────────────────────────────────────────────────────
   static const success = Color(0xFF35D07F);
   static const warning = Color(0xFFFFB020);
   static const danger = Color(0xFFFF5A5A);
 
+  // ── Rider operational status ──────────────────────────────────────────
+  static const statusOnline = Color(0xFF35D07F);
+  static const statusBusy = Color(0xFFFF9F1C);
+  static const statusOffline = Color(0xFF6A6E7A);
+
   static Color get accent => switch (AppConfig.flavor) {
         AppFlavor.user => lime,
         AppFlavor.partner => amber,
-        AppFlavor.admin => violet,
+        AppFlavor.admin => aqua,
       };
 
-  /// Text that sits legibly on the accent fill.
-  static Color get onAccent => AppConfig.isUser ? ink : ink;
+  /// Legible text/icon colour on top of the accent fill (all accents are bright
+  /// → ink reads best).
+  static Color get onAccent => ink;
 
-  static const radius = 22.0;
+  /// Accent at low opacity — for subtle tints (nav active, chips, avatars).
+  static Color tint(double a) => accent.withValues(alpha: a);
+
+  // ── Radii scale (no single "everything is a big pill" radius) ─────────
+  static const radiusXs = 10.0;
   static const radiusSm = 14.0;
+  static const radiusMd = 18.0;
+  static const radius = 22.0;
+  static const radiusLg = 28.0;
+  static const pill = 999.0;
+
+  // ── Spacing rhythm ─────────────────────────────────────────────────────
+  static const gap = 16.0; // base unit
+  static const gapLg = 24.0;
+  static const screenPad = EdgeInsets.symmetric(horizontal: 20);
 }
 
 class AppTheme {
   static ThemeData build() {
     final base = ThemeData.dark(useMaterial3: true);
-    const display = GoogleFonts.plusJakartaSans;
-    const body = GoogleFonts.dmSans;
+    TextStyle jakarta(double size, FontWeight w,
+            {Color? color, double height = 1.2, double ls = 0}) =>
+        GoogleFonts.plusJakartaSans(
+            fontSize: size, fontWeight: w, color: color ?? CC.text, height: height, letterSpacing: ls);
 
     return base.copyWith(
       scaffoldBackgroundColor: CC.ink,
@@ -52,37 +79,43 @@ class AppTheme {
         seedColor: CC.accent,
         brightness: Brightness.dark,
         surface: CC.surface,
-      ).copyWith(primary: CC.accent, secondary: CC.accent, surface: CC.surface),
+      ).copyWith(primary: CC.accent, surface: CC.surface, surfaceTint: Colors.transparent),
+      splashColor: CC.accent.withValues(alpha: 0.10),
+      highlightColor: CC.accent.withValues(alpha: 0.06),
       textTheme: TextTheme(
-        displayLarge: display(fontSize: 40, fontWeight: FontWeight.w800, color: CC.text, height: 1.02, letterSpacing: -1),
-        displaySmall: display(fontSize: 30, fontWeight: FontWeight.w800, color: CC.text, height: 1.05, letterSpacing: -0.5),
-        headlineMedium: display(fontSize: 24, fontWeight: FontWeight.w700, color: CC.text),
-        titleLarge: display(fontSize: 19, fontWeight: FontWeight.w700, color: CC.text),
-        titleMedium: display(fontSize: 16, fontWeight: FontWeight.w700, color: CC.text),
-        bodyLarge: body(fontSize: 15.5, color: CC.text, height: 1.4),
-        bodyMedium: body(fontSize: 14, color: CC.textDim, height: 1.4),
-        labelLarge: display(fontSize: 14, fontWeight: FontWeight.w700, color: CC.text, letterSpacing: 0.3),
-        labelSmall: body(fontSize: 12, color: CC.textFaint, letterSpacing: 0.4),
+        displayLarge: jakarta(40, FontWeight.w700, height: 1.04, ls: -1.0),
+        displayMedium: jakarta(34, FontWeight.w700, height: 1.05, ls: -0.8),
+        displaySmall: jakarta(28, FontWeight.w700, height: 1.08, ls: -0.6),
+        headlineMedium: jakarta(23, FontWeight.w700, ls: -0.4),
+        titleLarge: jakarta(19, FontWeight.w700, ls: -0.2),
+        titleMedium: jakarta(16, FontWeight.w600),
+        bodyLarge: jakarta(15.5, FontWeight.w500, color: CC.text, height: 1.45),
+        bodyMedium: jakarta(14, FontWeight.w500, color: CC.textDim, height: 1.45),
+        labelLarge: jakarta(14, FontWeight.w600, ls: 0.1),
+        labelMedium: jakarta(13, FontWeight.w600, color: CC.textDim),
+        labelSmall: jakarta(12.5, FontWeight.w500, color: CC.textFaint, ls: 0.2),
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: CC.ink,
         elevation: 0,
+        scrolledUnderElevation: 0,
         centerTitle: false,
-        titleTextStyle: display(fontSize: 20, fontWeight: FontWeight.w800, color: CC.text),
+        titleTextStyle: jakarta(20, FontWeight.w700, ls: -0.3),
         iconTheme: const IconThemeData(color: CC.text),
       ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: CC.surface,
-        selectedItemColor: CC.text,
-        unselectedItemColor: CC.textFaint,
-        type: BottomNavigationBarType.fixed,
-        showUnselectedLabels: true,
-      ),
-      dividerColor: CC.line,
+      dividerColor: CC.hair,
+      dividerTheme: const DividerThemeData(color: CC.hair, thickness: 1, space: 1),
     );
   }
 
-  /// DM Mono for prices, IDs, counts.
-  static TextStyle mono({double size = 14, FontWeight weight = FontWeight.w500, Color? color}) =>
-      GoogleFonts.dmMono(fontSize: size, fontWeight: weight, color: color ?? CC.text);
+  /// Numerals (prices, IDs, counts) — Plus Jakarta with tabular figures so
+  /// columns align. Single type family per the V4 spec.
+  static TextStyle mono({double size = 14, FontWeight weight = FontWeight.w600, Color? color}) =>
+      GoogleFonts.plusJakartaSans(
+        fontSize: size,
+        fontWeight: weight,
+        color: color ?? CC.text,
+        fontFeatures: const [FontFeature.tabularFigures()],
+        letterSpacing: 0.2,
+      );
 }

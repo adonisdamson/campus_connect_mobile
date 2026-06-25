@@ -27,11 +27,23 @@ class FoodScreen extends StatefulWidget {
 class _FoodScreenState extends State<FoodScreen> {
   List<Vendor> _vendors = [];
   bool _loading = true;
+  final _searchCtrl = TextEditingController();
+  String _query = '';
 
   @override
   void initState() {
     super.initState();
+    _searchCtrl.addListener(() {
+      final q = _searchCtrl.text.trim().toLowerCase();
+      if (q != _query) setState(() => _query = q);
+    });
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -40,10 +52,16 @@ class _FoodScreenState extends State<FoodScreen> {
       final lat = loc?.latitude ?? defaultCenter.lat;
       final lng = loc?.longitude ?? defaultCenter.lng;
       final res = await Api.instance.get('/vendors', query: {'lat': lat, 'lng': lng});
-      _vendors = (res['vendors'] as List).map((e) => Vendor.fromJson(e)).toList();
+      _vendors = ((res['vendors'] as List?) ?? []).map((e) => Vendor.fromJson(e)).toList();
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
   }
+
+  List<Vendor> get _filtered => _query.isEmpty
+      ? _vendors
+      : _vendors.where((v) => v.name.toLowerCase().contains(_query) || v.category.toLowerCase().contains(_query)).toList();
+
+  void _open(Vendor v) => Navigator.push(context, MaterialPageRoute(builder: (_) => VendorScreen(v)));
 
   @override
   Widget build(BuildContext context) {
@@ -52,59 +70,198 @@ class _FoodScreenState extends State<FoodScreen> {
       body: _loading
           ? Skeletons.list()
           : _vendors.isEmpty
-              ? const CCEmpty(icon: PhosphorIconsRegular.forkKnife, title: 'No vendors open', subtitle: 'Campus kitchens will show up here once they open.')
+              ? const CCEmpty(
+                  illustration: 'empty_search',
+                  title: 'No kitchens open',
+                  subtitle: 'Campus kitchens will appear here as soon as they start taking orders.')
               : RefreshIndicator(
                   onRefresh: _load,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _vendors.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 14),
-                    itemBuilder: (_, i) => _vendorCard(_vendors[i])
-                        .animate(delay: (i * 60).ms).fadeIn(duration: 320.ms).slideY(begin: 0.12, curve: Curves.easeOut),
+                  child: CustomScrollView(
+                    slivers: [
+                      SliverToBoxAdapter(child: _searchBar()),
+                      if (_query.isNotEmpty)
+                        ..._searchResults()
+                      else
+                        ..._curatedRails(),
+                      const SliverToBoxAdapter(child: SizedBox(height: 28)),
+                    ],
                   ),
                 ),
     );
   }
 
-  Widget _vendorCard(Vendor v) {
-    return CCCard(
-      padding: EdgeInsets.zero,
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VendorScreen(v))),
+  Widget _searchBar() => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+        child: CCField('Search kitchens & cuisines', _searchCtrl,
+            icon: PhosphorIconsRegular.magnifyingGlass),
+      );
+
+  // ── Curated rails (derived from one dataset; no fabricated data) ──────────
+  List<Widget> _curatedRails() {
+    final popular = (_vendors.where((v) => v.rating > 0).toList()
+          ..sort((a, b) => b.rating.compareTo(a.rating)))
+        .take(8)
+        .toList();
+    final fast = (_vendors.toList()..sort((a, b) => a.prepMinutes.compareTo(b.prepMinutes)))
+        .where((v) => v.prepMinutes <= 30)
+        .take(8)
+        .toList();
+
+    return [
+      if (popular.isNotEmpty) ...[
+        const SliverToBoxAdapter(child: CCSectionHeader('Popular on campus')),
+        _railSliver(popular),
+      ],
+      if (fast.isNotEmpty) ...[
+        const SliverToBoxAdapter(child: CCSectionHeader('Fast delivery')),
+        _railSliver(fast),
+      ],
+      const SliverToBoxAdapter(child: CCSectionHeader('All restaurants')),
+      _listSliver(_vendors),
+    ];
+  }
+
+  List<Widget> _searchResults() {
+    final r = _filtered;
+    if (r.isEmpty) {
+      return [
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.only(top: 64),
+            child: CCEmpty(
+                illustration: 'empty_search',
+                title: 'Nothing matched',
+                subtitle: 'Try another kitchen name or cuisine.'),
+          ),
+        ),
+      ];
+    }
+    return [
+      const SliverToBoxAdapter(child: SizedBox(height: 8)),
+      _listSliver(r),
+    ];
+  }
+
+  Widget _railSliver(List<Vendor> vendors) => SliverToBoxAdapter(
+        child: SizedBox(
+          height: 196,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+            itemCount: vendors.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (_, i) => _RailCard(vendors[i], onTap: () => _open(vendors[i])),
+          ),
+        ),
+      );
+
+  Widget _listSliver(List<Vendor> vendors) => SliverPadding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+        sliver: SliverList.separated(
+          itemCount: vendors.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 18),
+          itemBuilder: (_, i) => _ListCard(vendors[i], onTap: () => _open(vendors[i]))
+              .animate(delay: (i * 50).ms)
+              .fadeIn(duration: 300.ms)
+              .slideY(begin: 0.1, curve: Curves.easeOut),
+        ),
+      );
+}
+
+/// Vendor meta line: rating · category · prep · distance.
+class _VendorMeta extends StatelessWidget {
+  final Vendor v;
+  const _VendorMeta(this.v);
+  @override
+  Widget build(BuildContext context) {
+    final parts = <String>[
+      v.category.replaceAll('_', ' ').toLowerCase(),
+      '${v.prepMinutes} min',
+      if (v.distanceKm != null) '${v.distanceKm!.toStringAsFixed(1)} km',
+    ];
+    return Row(children: [
+      const Icon(PhosphorIconsFill.star, size: 13, color: CC.lime),
+      const SizedBox(width: 4),
+      Text(v.rating > 0 ? v.rating.toStringAsFixed(1) : 'New',
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5)),
+      Expanded(
+        child: Text('  ·  ${parts.join('  ·  ')}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: CC.textDim, fontSize: 12.5, fontWeight: FontWeight.w500)),
+      ),
+    ]);
+  }
+}
+
+class _RailCard extends StatelessWidget {
+  final Vendor v;
+  final VoidCallback onTap;
+  const _RailCard(this.v, {required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () { Haptics.tap(); onTap(); },
+      child: SizedBox(
+        width: 248,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(CC.radiusMd),
+              child: CCImage(v.coverUrl, width: 248, height: 132, fallbackIcon: PhosphorIconsRegular.forkKnife),
+            ),
+            const SizedBox(height: 9),
+            Text(v.name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+            const SizedBox(height: 4),
+            _VendorMeta(v),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ListCard extends StatelessWidget {
+  final Vendor v;
+  final VoidCallback onTap;
+  const _ListCard(this.v, {required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () { Haptics.tap(); onTap(); },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            height: 120,
-            width: double.infinity,
-            decoration: const BoxDecoration(color: CC.surfaceHi, borderRadius: BorderRadius.vertical(top: Radius.circular(CC.radius))),
-            child: v.coverUrl == null
-                ? const Center(child: Icon(PhosphorIconsFill.storefront, color: CC.textFaint, size: 34))
-                : ClipRRect(borderRadius: const BorderRadius.vertical(top: Radius.circular(CC.radius)), child: CCImage(v.coverUrl, width: double.infinity)),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(v.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                    const SizedBox(height: 3),
-                    Text(v.category.replaceAll('_', ' ').toLowerCase(), style: const TextStyle(color: CC.textDim, fontSize: 13)),
+          Stack(children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(CC.radius),
+              child: CCImage(v.coverUrl, width: double.infinity, height: 168, fallbackIcon: PhosphorIconsRegular.forkKnife),
+            ),
+            if (v.prepMinutes <= 20)
+              Positioned(
+                top: 12, left: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: CC.ink.withValues(alpha: 0.74),
+                    borderRadius: BorderRadius.circular(CC.pill),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                  ),
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(PhosphorIconsFill.lightning, size: 12.5, color: CC.lime),
+                    SizedBox(width: 4),
+                    Text('Fast', style: TextStyle(color: CC.text, fontWeight: FontWeight.w700, fontSize: 12.5)),
                   ]),
                 ),
-                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                  Row(children: [
-                    const Icon(PhosphorIconsFill.star, size: 13, color: CC.warning),
-                    const SizedBox(width: 4),
-                    Text(v.rating.toStringAsFixed(1), style: AppTheme.mono(size: 12.5)),
-                  ]),
-                  const SizedBox(height: 4),
-                  Text('${v.prepMinutes} min', style: const TextStyle(color: CC.textDim, fontSize: 12)),
-                  if (v.distanceKm != null) Text('${v.distanceKm} km', style: AppTheme.mono(size: 11, color: CC.textFaint)),
-                ]),
-              ],
-            ),
-          ),
+              ),
+          ]),
+          const SizedBox(height: 11),
+          Text(v.name, maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17, letterSpacing: -0.3)),
+          const SizedBox(height: 6),
+          _VendorMeta(v),
         ],
       ),
     );
@@ -164,7 +321,7 @@ class _VendorScreenState extends State<VendorScreen> {
             Text(p.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
             if (p.description != null) ...[const SizedBox(height: 3), Text(p.description!, style: const TextStyle(color: CC.textDim, fontSize: 13))],
             const SizedBox(height: 6),
-            Text('${p.hasOptions ? 'from ' : ''}GHC ${p.price.toStringAsFixed(2)}', style: AppTheme.mono(color: CC.accent)),
+            Text('${p.hasOptions ? 'from ' : ''}GHS ${p.price.toStringAsFixed(2)}', style: AppTheme.mono(color: CC.accent)),
           ]),
         ),
         const SizedBox(width: 12),
@@ -225,7 +382,7 @@ class _CartBar extends StatelessWidget {
               const SizedBox(width: 12),
               const Text('View cart', style: TextStyle(color: CC.ink, fontWeight: FontWeight.w800, fontSize: 16)),
               const Spacer(),
-              Text('GHC ${cart.subtotal.toStringAsFixed(2)}', style: AppTheme.mono(color: CC.ink, weight: FontWeight.w500, size: 15)),
+              Text('GHS ${cart.subtotal.toStringAsFixed(2)}', style: AppTheme.mono(color: CC.ink, weight: FontWeight.w500, size: 15)),
             ]),
           ),
         ),
@@ -280,7 +437,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         _discount = (res['discount'] as num).toDouble();
         _couponCode = code;
       });
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Coupon applied — GHC ${_discount.toStringAsFixed(2)} off')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Coupon applied — GHS ${_discount.toStringAsFixed(2)} off')));
     } on ApiException catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message), backgroundColor: CC.danger));
     }
@@ -341,7 +498,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           Text(l.product.name, style: const TextStyle(fontWeight: FontWeight.w600)),
                           if (l.options.isNotEmpty) Text(l.optionsLabel, style: const TextStyle(color: CC.textDim, fontSize: 12)),
                         ])),
-                        Text('GHC ${l.lineTotal.toStringAsFixed(2)}', style: AppTheme.mono()),
+                        Text('GHS ${l.lineTotal.toStringAsFixed(2)}', style: AppTheme.mono()),
                       ]),
                     )),
                 const Divider(color: CC.line, height: 28),
@@ -374,7 +531,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   Text('Cash on delivery', style: TextStyle(fontWeight: FontWeight.w600)),
                 ])),
                 const SizedBox(height: 24),
-                CCButton('Place order  •  GHC ${total.toStringAsFixed(2)}', loading: _placing, onTap: _placeOrder),
+                CCButton('Place order  •  GHS ${total.toStringAsFixed(2)}', loading: _placing, onTap: _placeOrder),
               ],
             ),
     );
@@ -385,7 +542,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         child: Row(children: [
           Text(label, style: TextStyle(color: bold ? CC.text : CC.textDim, fontWeight: bold ? FontWeight.w800 : FontWeight.w500, fontSize: bold ? 16 : 14)),
           const Spacer(),
-          Text('GHC ${v.toStringAsFixed(2)}', style: AppTheme.mono(weight: bold ? FontWeight.w500 : FontWeight.w400, color: bold ? CC.accent : CC.text)),
+          Text('GHS ${v.toStringAsFixed(2)}', style: AppTheme.mono(weight: bold ? FontWeight.w500 : FontWeight.w400, color: bold ? CC.accent : CC.text)),
         ]),
       );
 }

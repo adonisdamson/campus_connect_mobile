@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/api.dart';
 import '../../core/cc_image.dart';
 import '../../core/haptics.dart';
+import '../../core/icons.dart';
 import '../../core/payment_picker.dart';
 import '../../core/skeletons.dart';
 import '../../core/theme.dart';
@@ -130,37 +131,28 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
           ),
         ),
         SizedBox(
-          height: 38,
-          child: ListView(
+          height: 40,
+          child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            children: [
-              _chip('All', _categoryId == null, () => _selectCategory(null)),
-              for (final c in _categories) _chip('${c['name']}', _categoryId == c['id'], () => _selectCategory(c['id'])),
-            ],
+            itemCount: _categories.length + 1,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (_, i) {
+              if (i == 0) {
+                return CCChip('All', selected: _categoryId == null, onTap: () => _selectCategory(null));
+              }
+              final c = _categories[i - 1];
+              return CCChip('${c['name']}',
+                  icon: CCIcons.of('${c['name']}'),
+                  selected: _categoryId == c['id'],
+                  onTap: () => _selectCategory(c['id']));
+            },
           ),
         ),
         const SizedBox(height: 8),
       ],
     );
   }
-
-  Widget _chip(String label, bool sel, VoidCallback onTap) => Padding(
-        padding: const EdgeInsets.only(right: 8),
-        child: GestureDetector(
-          onTap: onTap,
-          child: Container(
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              color: sel ? CC.accent : CC.surfaceHi,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: sel ? CC.accent : CC.line),
-            ),
-            child: Text(label, style: TextStyle(color: sel ? CC.ink : CC.textDim, fontWeight: FontWeight.w700, fontSize: 12.5)),
-          ),
-        ),
-      );
 
   @override
   Widget build(BuildContext context) {
@@ -194,16 +186,13 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                           padding: const EdgeInsets.all(16),
                           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                               maxCrossAxisExtent: 230, mainAxisSpacing: 14, crossAxisSpacing: 14, childAspectRatio: 0.72),
-                          itemCount: _items.length + (_hasMore ? 1 : 0),
+                          itemCount: _items.length + (_hasMore ? 2 : 0),
                           itemBuilder: (_, i) {
-                            if (i >= _items.length) {
-                              return const Center(child: Padding(
-                                padding: EdgeInsets.all(16),
-                                child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.2)),
-                              ));
-                            }
+                            // Trailing shimmer tiles stand in for the next page
+                            // (no spinners — skeletons only).
+                            if (i >= _items.length) return const _ListingSkeleton();
                             return _listingCard(_items[i])
-                                .animate(delay: (i * 40).ms).fadeIn(duration: 300.ms).slideY(begin: 0.12, curve: Curves.easeOut);
+                                .animate(delay: ((i % _pageSize) * 40).ms).fadeIn(duration: 300.ms).slideY(begin: 0.12, curve: Curves.easeOut);
                           },
                         ),
                       ),
@@ -214,38 +203,73 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   }
 
   Widget _listingCard(Listing l) {
-    return CCCard(
-      padding: EdgeInsets.zero,
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ListingDetailScreen(l.id))),
+    return GestureDetector(
+      onTap: () {
+        Haptics.tap();
+        Navigator.push(context, MaterialPageRoute(builder: (_) => ListingDetailScreen(l.id)));
+      },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Square, image-forward hero with a condition tag (Carousell/FB feel).
           Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(color: CC.surfaceHi, borderRadius: BorderRadius.vertical(top: Radius.circular(CC.radius))),
-              child: l.images.isEmpty
-                  ? const Icon(PhosphorIconsRegular.image, color: CC.textFaint, size: 32)
-                  : ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(CC.radius)),
-                      child: CCImage(l.images.first, width: double.infinity),
-                    ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(CC.radiusMd),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CCImage(l.images.isEmpty ? null : l.images.first, fallbackIcon: PhosphorIconsRegular.tag),
+                  Positioned(top: 8, left: 8, child: _GlassPill(text: l.conditionLabel)),
+                ],
+              ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(l.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
-                Text('GHC ${l.price.toStringAsFixed(0)}', style: AppTheme.mono(color: CC.accent, weight: FontWeight.w500)),
-              ],
+          const SizedBox(height: 9),
+          Text('GHS ${l.price.toStringAsFixed(0)}',
+              style: AppTheme.mono(size: 15.5, color: CC.accent, weight: FontWeight.w700)),
+          const SizedBox(height: 2),
+          Text(l.title,
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+          const SizedBox(height: 6),
+          Row(children: [
+            CCAvatar(l.sellerName.isNotEmpty ? l.sellerName[0].toUpperCase() : 'S',
+                size: 19, imageUrl: l.sellerPhoto),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(l.sellerName.split(' ').first,
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: CC.textDim, fontSize: 12, fontWeight: FontWeight.w500)),
             ),
-          ),
+            if (l.sellerVerified)
+              const Icon(PhosphorIconsFill.sealCheck, size: 14, color: CC.lime),
+          ]),
         ],
       ),
     );
+  }
+}
+
+/// Shimmer placeholder matching a marketplace card (used for the next page).
+class _ListingSkeleton extends StatelessWidget {
+  const _ListingSkeleton();
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(color: CC.surfaceHi, borderRadius: BorderRadius.circular(CC.radiusMd)),
+          ),
+        ),
+        const SizedBox(height: 9),
+        Container(width: 70, height: 14, decoration: BoxDecoration(color: CC.surfaceHi, borderRadius: BorderRadius.circular(6))),
+        const SizedBox(height: 7),
+        Container(width: 120, height: 12, decoration: BoxDecoration(color: CC.surfaceHi, borderRadius: BorderRadius.circular(6))),
+      ],
+    ).animate(onPlay: (c) => c.repeat()).fadeIn(duration: 600.ms).then().fadeOut(duration: 600.ms);
   }
 }
 
@@ -258,56 +282,167 @@ class ServicesScreen extends StatefulWidget {
 
 class _ServicesScreenState extends State<ServicesScreen> {
   List<ServiceItem> _items = [];
+  List<({String id, String name})> _cats = [];
+  String? _activeCat; // null = All
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
+    _loadCategories();
     _load();
   }
 
-  Future<void> _load() async {
+  Future<void> _loadCategories() async {
     try {
-      final res = await Api.instance.get('/services');
-      _items = (res['services'] as List).map((e) => ServiceItem.fromJson(e)).toList();
+      final res = await Api.instance.get('/categories', query: {'type': 'SERVICE'});
+      final cats = ((res['categories'] as List?) ?? [])
+          .map((e) => (id: '${e['id']}', name: '${e['name']}'))
+          .toList();
+      if (mounted) setState(() => _cats = cats);
+    } catch (_) {}
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final res = await Api.instance.get('/services',
+          query: {if (_activeCat != null) 'categoryId': _activeCat!});
+      _items = ((res['services'] as List?) ?? []).map((e) => ServiceItem.fromJson(e)).toList();
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
+  }
+
+  void _selectCat(String? id) {
+    if (_activeCat == id) return;
+    setState(() => _activeCat = id);
+    _load();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Services')),
+      appBar: AppBar(
+        title: const Text('Services'),
+        bottom: _cats.isEmpty
+            ? null
+            : PreferredSize(
+                preferredSize: const Size.fromHeight(54),
+                child: SizedBox(
+                  height: 54,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                    itemCount: _cats.length + 1,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (_, i) {
+                      if (i == 0) {
+                        return CCChip('All', selected: _activeCat == null, onTap: () => _selectCat(null));
+                      }
+                      final c = _cats[i - 1];
+                      return CCChip(c.name,
+                          icon: CCIcons.of(c.name),
+                          selected: _activeCat == c.id,
+                          onTap: () => _selectCat(c.id));
+                    },
+                  ),
+                ),
+              ),
+      ),
       body: _loading
           ? Skeletons.list()
           : _items.isEmpty
-              ? const CCEmpty(icon: PhosphorIconsRegular.sparkle, title: 'No services yet', subtitle: 'Hair, nails, printing, tutoring & more — coming from your peers.')
+              ? const CCEmpty(
+                  illustration: 'empty_search',
+                  title: 'No services here yet',
+                  subtitle: 'Hair, nails, printing, tutoring & more — booked from peers around campus.')
               : ListView.separated(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
                   itemCount: _items.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (_, i) {
-                    final s = _items[i];
-                    return CCCard(
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ServiceDetailScreen(s.id))),
-                      child: Row(children: [
-                        Container(
-                          width: 52, height: 52,
-                          decoration: BoxDecoration(color: CC.accent.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(14)),
-                          child: const Icon(PhosphorIconsFill.sparkle, color: CC.lime),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(s.title, style: const TextStyle(fontWeight: FontWeight.w700)),
-                            Text(s.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: CC.textDim, fontSize: 13)),
-                          ]),
-                        ),
-                        Text('GHC ${s.basePrice.toStringAsFixed(0)}', style: AppTheme.mono(color: CC.accent)),
-                      ]),
-                    );
-                  },
+                  separatorBuilder: (_, __) => const SizedBox(height: 22),
+                  itemBuilder: (_, i) => _ServiceExperienceCard(_items[i])
+                      .animate(delay: (50 * i).ms)
+                      .fadeIn(duration: 300.ms)
+                      .slideY(begin: 0.1, curve: Curves.easeOut),
                 ),
+    );
+  }
+}
+
+/// Airbnb-Experiences style card: a photo hero with category + rating overlays,
+/// then title, provider, and price below. Cover photo is API-driven; a distinct
+/// per-category icon stands in when a provider hasn't uploaded one.
+class _ServiceExperienceCard extends StatelessWidget {
+  final ServiceItem s;
+  const _ServiceExperienceCard(this.s);
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Haptics.tap();
+        Navigator.push(context, MaterialPageRoute(builder: (_) => ServiceDetailScreen(s.id)));
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(CC.radius),
+                child: CCImage(s.coverUrl,
+                    width: double.infinity, height: 188, fallbackIcon: CCIcons.of(s.categoryName ?? s.title)),
+              ),
+              if (s.categoryName != null)
+                Positioned(top: 12, left: 12, child: _GlassPill(text: s.categoryName!)),
+              if (s.rating > 0)
+                Positioned(
+                  top: 12, right: 12,
+                  child: _GlassPill(text: s.rating.toStringAsFixed(1), icon: PhosphorIconsFill.star),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(s.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16.5, letterSpacing: -0.2)),
+          const SizedBox(height: 8),
+          Row(children: [
+            CCAvatar(s.providerName.isNotEmpty ? s.providerName[0].toUpperCase() : 'P',
+                size: 26, imageUrl: s.providerPhoto),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(s.providerName,
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: CC.textDim, fontSize: 13.5, fontWeight: FontWeight.w500)),
+            ),
+            Text(s.priceLabel,
+                style: AppTheme.mono(size: 14.5, color: CC.accent, weight: FontWeight.w700)),
+          ]),
+        ],
+      ),
+    );
+  }
+}
+
+/// Frosted dark pill used to overlay labels on photography.
+class _GlassPill extends StatelessWidget {
+  final String text;
+  final IconData? icon;
+  const _GlassPill({required this.text, this.icon});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: icon != null ? 9 : 11, vertical: 6),
+      decoration: BoxDecoration(
+        color: CC.ink.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(CC.pill),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12), width: 1),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        if (icon != null) ...[Icon(icon, size: 12.5, color: CC.lime), const SizedBox(width: 4)],
+        Text(text,
+            style: const TextStyle(color: CC.text, fontWeight: FontWeight.w700, fontSize: 12.5)),
+      ]),
     );
   }
 }
@@ -350,7 +485,7 @@ class _WalletScreenState extends State<WalletScreen> {
       if (res['authorizationUrl'] != null) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Continue payment in the opened page')));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Wallet topped up by GHC ${amount.toStringAsFixed(2)}')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Wallet topped up by GHS ${amount.toStringAsFixed(2)}')));
       }
       _load();
     } on ApiException catch (e) {
@@ -369,7 +504,7 @@ class _WalletScreenState extends State<WalletScreen> {
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('Withdraw to MoMo', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
           const SizedBox(height: 14),
-          CCField('Amount (GHC)', amount, icon: PhosphorIconsRegular.currencyDollar, keyboard: TextInputType.number),
+          CCField('Amount (GHS)', amount, icon: PhosphorIconsRegular.currencyDollar, keyboard: TextInputType.number),
           const SizedBox(height: 12),
           CCField('Mobile money number', number, icon: PhosphorIconsRegular.phone, keyboard: TextInputType.phone),
           const SizedBox(height: 18),
@@ -389,62 +524,137 @@ class _WalletScreenState extends State<WalletScreen> {
     }
   }
 
-  Widget _pill(String label, IconData icon, VoidCallback onTap) => GestureDetector(
-        onTap: () { Haptics.tap(); onTap(); },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(color: CC.ink, borderRadius: BorderRadius.circular(12)),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icon, size: 15, color: CC.lime),
-            const SizedBox(width: 6),
-            Text(label, style: const TextStyle(color: CC.lime, fontWeight: FontWeight.w700)),
-          ]),
-        ),
-      );
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Wallet')),
       body: _loading
           ? Skeletons.tiles()
-          : ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(22),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(CC.radius),
-                    gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [CC.lime, Color(0xFF8FE000)]),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('CAMPUS BALANCE', style: TextStyle(color: CC.ink.withValues(alpha: 0.7), fontWeight: FontWeight.w700, fontSize: 11, letterSpacing: 1)),
-                      const SizedBox(height: 8),
-                      Text('GHC ${_balance.toStringAsFixed(2)}', style: AppTheme.mono(size: 32, weight: FontWeight.w500, color: CC.ink)),
-                      const SizedBox(height: 18),
-                      Row(children: [
-                        _pill('Top up', PhosphorIconsBold.plus, _topup),
-                        const SizedBox(width: 10),
-                        _pill('Withdraw', PhosphorIconsBold.arrowUp, _payout),
-                      ]),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                const Text('Recent activity', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                const SizedBox(height: 8),
-                if (_txns.isEmpty) const Padding(padding: EdgeInsets.all(24), child: Center(child: Text('No transactions yet', style: TextStyle(color: CC.textDim)))),
-                ..._txns.map((t) => ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: CircleAvatar(backgroundColor: CC.surfaceHi, child: Icon(PhosphorIconsRegular.arrowsDownUp, size: 18, color: CC.accent)),
-                      title: Text('${t['type']}'.replaceAll('_', ' '), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                      trailing: Text('GHC ${t['amount']}', style: AppTheme.mono()),
-                    )),
-              ],
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+                children: [
+                  // Cash App-style: the balance is the hero — no bank-card chrome.
+                  const Text('Campus balance',
+                      style: TextStyle(color: CC.textDim, fontSize: 14, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 6),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text('GHS ', style: AppTheme.mono(size: 20, color: CC.textDim, weight: FontWeight.w600)),
+                        Text(_balance.toStringAsFixed(2),
+                            style: AppTheme.mono(size: 46, weight: FontWeight.w700, color: CC.text)),
+                      ],
+                    ),
+                  ).animate().fadeIn(duration: 320.ms).slideY(begin: 0.15, curve: Curves.easeOut),
+                  const SizedBox(height: 22),
+                  Row(children: [
+                    Expanded(child: CCButton('Add money', icon: PhosphorIconsBold.plus, onTap: _topup)),
+                    const SizedBox(width: 12),
+                    Expanded(child: CCButton('Withdraw',
+                        variant: CCVariant.secondary, icon: PhosphorIconsBold.arrowUp, onTap: _payout)),
+                  ]),
+                  const SizedBox(height: 30),
+                  const Text('Activity', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19, letterSpacing: -0.2)),
+                  const SizedBox(height: 6),
+                  if (_txns.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 24),
+                      child: CCEmpty(
+                          illustration: 'empty_wallet',
+                          title: 'No activity yet',
+                          subtitle: 'Top up, ride, eat and shop — it all shows up here.'),
+                    )
+                  else
+                    ..._txns.map((t) => _TxnRow(Map<String, dynamic>.from(t as Map))),
+                ],
+              ),
             ),
     );
+  }
+}
+
+/// A single wallet ledger row — Cash App timeline feel.
+class _TxnRow extends StatelessWidget {
+  final Map<String, dynamic> t;
+  const _TxnRow(this.t);
+
+  static const _credit = {'TOPUP', 'REFUND', 'REWARD', 'TIP'};
+
+  @override
+  Widget build(BuildContext context) {
+    final type = '${t['type']}';
+    final isCredit = _credit.contains(type);
+    final amount = (t['amount'] is num) ? (t['amount'] as num).toDouble() : double.tryParse('${t['amount']}') ?? 0;
+    final when = DateTime.tryParse('${t['createdAt']}');
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 9),
+      child: Row(children: [
+        Container(
+          width: 44, height: 44,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isCredit ? CC.tint(0.14) : CC.surfaceHi,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(_icon(type), size: 19, color: isCredit ? CC.accent : CC.text),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(_label(type), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5)),
+            if (when != null) ...[
+              const SizedBox(height: 2),
+              Text(_date(when), style: const TextStyle(color: CC.textFaint, fontSize: 12.5, fontWeight: FontWeight.w500)),
+            ],
+          ]),
+        ),
+        Text('${isCredit ? '+' : '−'}GHS ${amount.toStringAsFixed(2)}',
+            style: AppTheme.mono(size: 14.5, weight: FontWeight.w700, color: isCredit ? CC.accent : CC.text)),
+      ]),
+    );
+  }
+
+  IconData _icon(String type) => switch (type) {
+        'TOPUP' => PhosphorIconsFill.arrowDown,
+        'REFUND' => PhosphorIconsFill.arrowUUpLeft,
+        'REWARD' => PhosphorIconsFill.gift,
+        'TIP' => PhosphorIconsFill.coins,
+        'RIDE_PAYMENT' => PhosphorIconsFill.carProfile,
+        'ORDER_PAYMENT' => PhosphorIconsFill.bag,
+        'SERVICE_PAYMENT' => PhosphorIconsFill.calendarCheck,
+        'PAYOUT' => PhosphorIconsFill.arrowUp,
+        'FEE' => PhosphorIconsFill.receipt,
+        _ => PhosphorIconsFill.arrowsDownUp,
+      };
+
+  String _label(String type) => switch (type) {
+        'TOPUP' => 'Top up',
+        'REFUND' => 'Refund',
+        'REWARD' => 'Reward',
+        'TIP' => 'Tip',
+        'RIDE_PAYMENT' => 'Ride',
+        'ORDER_PAYMENT' => 'Order',
+        'SERVICE_PAYMENT' => 'Service',
+        'PAYOUT' => 'Withdrawal',
+        'FEE' => 'Fee',
+        _ => type.replaceAll('_', ' '),
+      };
+
+  static const _months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  String _date(DateTime d) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final that = DateTime(d.year, d.month, d.day);
+    final diff = today.difference(that).inDays;
+    if (diff == 0) return 'Today';
+    if (diff == 1) return 'Yesterday';
+    return '${d.day} ${_months[d.month - 1]}${d.year == now.year ? '' : ' ${d.year}'}';
   }
 }
 
@@ -458,48 +668,77 @@ class AccountScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('You')),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         children: [
-          Row(children: [
-            CCAvatar(user?.initials ?? 'U', size: 64),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(user?.fullName ?? 'Student', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-                Text(user?.email ?? user?.phone ?? '', style: const TextStyle(color: CC.textDim)),
-              ]),
-            ),
-            OutlinedButton(
-              style: OutlinedButton.styleFrom(side: const BorderSide(color: CC.line), shape: const StadiumBorder()),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen())),
-              child: const Text('Edit', style: TextStyle(color: CC.text)),
-            ),
-          ]),
-          const SizedBox(height: 26),
+          // ── Identity header card (Revolut/Notion) ──
+          CCCard(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen())),
+            padding: const EdgeInsets.all(16),
+            child: Row(children: [
+              CCAvatar(user?.initials ?? 'U', size: 58, imageUrl: user?.profilePhoto),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(user?.fullName ?? 'Student',
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18, letterSpacing: -0.2)),
+                  const SizedBox(height: 3),
+                  Text(user?.email ?? user?.phone ?? '',
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: CC.textDim, fontSize: 13.5, fontWeight: FontWeight.w500)),
+                  if (user?.isVerified == true) ...[
+                    const SizedBox(height: 8),
+                    const CCBadge('Verified', icon: PhosphorIconsFill.sealCheck, tone: CCBadgeTone.success),
+                  ],
+                ]),
+              ),
+              const Icon(PhosphorIconsRegular.caretRight, size: 18, color: CC.textFaint),
+            ]),
+          ),
           _section('Activity'),
-          _tile(PhosphorIconsRegular.clockCounterClockwise, 'Your activity', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ActivityScreen()))),
-          _tile(PhosphorIconsRegular.bell, 'Notifications', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()))),
-          _tile(PhosphorIconsRegular.chatCircle, 'Messages', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatListScreen()))),
+          _GroupCard(rows: [
+            _AccountRow(PhosphorIconsRegular.clockCounterClockwise, 'Your activity',
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ActivityScreen()))),
+            _AccountRow(PhosphorIconsRegular.bell, 'Notifications',
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()))),
+            _AccountRow(PhosphorIconsRegular.chatCircle, 'Messages',
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatListScreen()))),
+          ]),
           _section('Earn with us'),
-          _tile(PhosphorIconsRegular.steeringWheel, 'Become a driver / courier', () => _become(context, '/profile/become-driver', 'DRIVER')),
-          _tile(PhosphorIconsRegular.storefront, 'My store', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VendorStoreScreen()))),
-          _tile(PhosphorIconsRegular.sparkle, 'Offer a service', () => _become(context, '/profile/become-provider', 'SERVICE_PROVIDER')),
-          _tile(PhosphorIconsRegular.sealCheck, 'Verify my identity', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VerificationScreen(type: 'DRIVER')))),
+          _GroupCard(rows: [
+            _AccountRow(PhosphorIconsRegular.steeringWheel, 'Become a driver / courier',
+                () => _become(context, '/profile/become-driver', 'DRIVER')),
+            _AccountRow(PhosphorIconsRegular.storefront, 'My store',
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VendorStoreScreen()))),
+            _AccountRow(PhosphorIconsRegular.scissors, 'Offer a service',
+                () => _become(context, '/profile/become-provider', 'SERVICE_PROVIDER')),
+            _AccountRow(PhosphorIconsRegular.sealCheck, 'Verify my identity',
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VerificationScreen(type: 'DRIVER')))),
+          ]),
           _section('More'),
-          _tile(PhosphorIconsRegular.gift, 'Refer & earn', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReferralScreen()))),
-          _tile(PhosphorIconsRegular.question, 'Help & support', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HelpScreen()))),
-          _tile(PhosphorIconsRegular.shieldCheck, 'Privacy policy', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LegalScreen(title: 'Privacy policy', body: kPrivacyText)))),
-          _tile(PhosphorIconsRegular.scroll, 'Terms of service', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LegalScreen(title: 'Terms of service', body: kTermsText)))),
-          const SizedBox(height: 8),
-          _tile(PhosphorIconsRegular.signOut, 'Sign out', () => auth.signOut(), danger: true),
+          _GroupCard(rows: [
+            _AccountRow(PhosphorIconsRegular.gift, 'Refer & earn',
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReferralScreen()))),
+            _AccountRow(PhosphorIconsRegular.question, 'Help & support',
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HelpScreen()))),
+            _AccountRow(PhosphorIconsRegular.shieldCheck, 'Privacy policy',
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LegalScreen(title: 'Privacy policy', body: kPrivacyText)))),
+            _AccountRow(PhosphorIconsRegular.scroll, 'Terms of service',
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LegalScreen(title: 'Terms of service', body: kTermsText)))),
+          ]),
+          const SizedBox(height: 14),
+          _GroupCard(rows: [
+            _AccountRow(PhosphorIconsRegular.signOut, 'Sign out', () => auth.signOut(), danger: true),
+          ]),
         ],
       ),
     );
   }
 
   Widget _section(String label) => Padding(
-        padding: const EdgeInsets.only(top: 10, bottom: 2),
-        child: Text(label.toUpperCase(), style: const TextStyle(color: CC.textFaint, fontSize: 11.5, fontWeight: FontWeight.w800, letterSpacing: 0.8)),
+        padding: const EdgeInsets.fromLTRB(4, 24, 4, 10),
+        child: Text(label.toUpperCase(),
+            style: const TextStyle(color: CC.textFaint, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 0.9)),
       );
 
   Future<void> _become(BuildContext c, String path, String verifyType) async {
@@ -514,14 +753,66 @@ class AccountScreen extends StatelessWidget {
       if (c.mounted) ScaffoldMessenger.of(c).showSnackBar(SnackBar(content: Text(e.message), backgroundColor: CC.danger));
     }
   }
+}
 
-  Widget _tile(IconData icon, String label, VoidCallback onTap, {bool danger = false}) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(icon, color: danger ? CC.danger : CC.text, size: 22),
-      title: Text(label, style: TextStyle(fontWeight: FontWeight.w600, color: danger ? CC.danger : CC.text)),
-      trailing: const Icon(PhosphorIconsRegular.caretRight, size: 16, color: CC.textFaint),
+/// A grouped settings card — rows share one rounded surface with hairline
+/// separators (Revolut/Notion), instead of loose repeated list tiles.
+class _GroupCard extends StatelessWidget {
+  final List<_AccountRow> rows;
+  const _GroupCard({required this.rows});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: CC.surface,
+        borderRadius: BorderRadius.circular(CC.radius),
+        border: Border.all(color: CC.line, width: 1),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            rows[i],
+            if (i != rows.length - 1)
+              const Padding(
+                padding: EdgeInsets.only(left: 62),
+                child: Divider(height: 1, thickness: 1, color: CC.hair),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _AccountRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool danger;
+  const _AccountRow(this.icon, this.label, this.onTap, {this.danger = false});
+  @override
+  Widget build(BuildContext context) {
+    final c = danger ? CC.danger : CC.text;
+    return InkWell(
       onTap: () { Haptics.tap(); onTap(); },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        child: Row(children: [
+          Container(
+            width: 34, height: 34,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: danger ? CC.danger.withValues(alpha: 0.12) : CC.surfaceHi,
+              borderRadius: BorderRadius.circular(CC.radiusXs),
+            ),
+            child: Icon(icon, size: 18, color: c),
+          ),
+          const SizedBox(width: 14),
+          Expanded(child: Text(label, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: c))),
+          if (!danger) const Icon(PhosphorIconsRegular.caretRight, size: 16, color: CC.textFaint),
+        ]),
+      ),
     );
   }
 }

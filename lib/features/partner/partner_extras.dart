@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../core/api.dart';
 import '../../core/haptics.dart';
+import '../../core/skeletons.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 
@@ -43,7 +44,7 @@ class _PartnerEarningsScreenState extends State<PartnerEarningsScreen> {
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('Cash out', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
           const SizedBox(height: 14),
-          CCField('Amount (GHC)', amount, icon: PhosphorIconsRegular.currencyDollar, keyboard: TextInputType.number),
+          CCField('Amount (GHS)', amount, icon: PhosphorIconsRegular.currencyDollar, keyboard: TextInputType.number),
           const SizedBox(height: 12),
           CCField('Mobile money number', number, icon: PhosphorIconsRegular.phone, keyboard: TextInputType.phone),
           const SizedBox(height: 18),
@@ -68,15 +69,15 @@ class _PartnerEarningsScreenState extends State<PartnerEarningsScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Earnings')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Skeletons.tiles()
           : ListView(padding: const EdgeInsets.all(20), children: [
               Container(
                 padding: const EdgeInsets.all(22),
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(CC.radius), gradient: const LinearGradient(colors: [CC.amber, Color(0xFFE08E00)])),
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(CC.radius), gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [CC.amber, Color(0xFFE08E00)])),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('AVAILABLE BALANCE', style: TextStyle(color: CC.ink.withValues(alpha: 0.7), fontWeight: FontWeight.w700, fontSize: 11, letterSpacing: 1)),
                   const SizedBox(height: 8),
-                  Text('GHC ${_balance.toStringAsFixed(2)}', style: AppTheme.mono(size: 32, weight: FontWeight.w500, color: CC.ink)),
+                  Text('GHS ${_balance.toStringAsFixed(2)}', style: AppTheme.mono(size: 32, weight: FontWeight.w500, color: CC.ink)),
                   const SizedBox(height: 16),
                   GestureDetector(onTap: _payout, child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -103,7 +104,7 @@ class _PartnerEarningsScreenState extends State<PartnerEarningsScreen> {
 
   Widget _card(String label, dynamic v) => Expanded(child: CCCard(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('GHC ${v ?? 0}', style: AppTheme.mono(size: 16, color: CC.amber)),
+          Text('GHS ${v ?? 0}', style: AppTheme.mono(size: 16, color: CC.amber)),
           const SizedBox(height: 4),
           Text(label, style: const TextStyle(color: CC.textDim, fontSize: 11.5)),
         ]),
@@ -167,7 +168,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_loading) return Scaffold(appBar: AppBar(title: const Text('Vehicle')), body: Skeletons.list());
     return Scaffold(
       appBar: AppBar(title: const Text('Vehicle')),
       body: ListView(padding: const EdgeInsets.all(20), children: [

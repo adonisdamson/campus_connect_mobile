@@ -71,7 +71,7 @@ class ReferralScreen extends StatelessWidget {
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(CC.radius), gradient: const LinearGradient(colors: [CC.lime, Color(0xFF8FE000)])),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(CC.radius), gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF1DE26F), CC.lime])),
             child: Column(children: [
               Text('YOUR CODE', style: TextStyle(color: CC.ink.withValues(alpha: 0.7), fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: 1.5)),
               const SizedBox(height: 10),

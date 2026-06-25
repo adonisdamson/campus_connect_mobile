@@ -5,6 +5,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../core/api.dart';
 import '../../core/cc_image.dart';
 import '../../core/haptics.dart';
+import '../../core/skeletons.dart';
 import '../../core/theme.dart';
 import '../../core/uploads.dart';
 import '../../core/widgets.dart';
@@ -58,7 +59,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_loading) return Scaffold(appBar: AppBar(), body: Skeletons.tiles());
     if (_l == null) return const Scaffold(body: CCEmpty(icon: PhosphorIconsRegular.warning, title: 'Not found', subtitle: 'This listing is no longer available.'));
     final images = ((_l!['images'] as List?) ?? []).map((e) => '${e['url']}').toList();
     final seller = _l!['seller'] ?? {};
@@ -80,7 +81,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
               Text('${_l!['title']}', style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 8),
               Row(children: [
-                Text('GHC ${_l!['price']}', style: AppTheme.mono(size: 24, color: CC.accent)),
+                Text('GHS ${_l!['price']}', style: AppTheme.mono(size: 24, color: CC.accent)),
                 if (_l!['negotiable'] == true) ...[const SizedBox(width: 10), const Chip(label: Text('Negotiable', style: TextStyle(fontSize: 11)), backgroundColor: CC.surfaceHi)],
               ]),
               const SizedBox(height: 16),
@@ -235,7 +236,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
           const SizedBox(height: 18),
           CCField('Title', _title, icon: PhosphorIconsRegular.tag),
           const SizedBox(height: 14),
-          CCField('Price (GHC)', _price, icon: PhosphorIconsRegular.currencyDollar, keyboard: TextInputType.number),
+          CCField('Price (GHS)', _price, icon: PhosphorIconsRegular.currencyDollar, keyboard: TextInputType.number),
           const SizedBox(height: 14),
           CCField('Description', _desc, icon: PhosphorIconsRegular.note),
           const SizedBox(height: 18),

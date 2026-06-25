@@ -9,6 +9,7 @@ import '../../core/api.dart';
 import '../../core/haptics.dart';
 import '../../core/live_map.dart';
 import '../../core/location.dart';
+import '../../core/nav.dart';
 import '../../core/routing.dart';
 import '../../core/skeletons.dart';
 import '../../core/socket.dart';
@@ -29,21 +30,17 @@ class _PartnerShellState extends State<PartnerShell> {
   int _i = 0;
   final _pages = const [_PartnerHome(), PartnerJobsScreen(), _PartnerAccount()];
 
+  static const _items = [
+    CCNavItem(PhosphorIconsRegular.steeringWheel, PhosphorIconsFill.steeringWheel, 'Drive'),
+    CCNavItem(PhosphorIconsRegular.listChecks, PhosphorIconsFill.listChecks, 'Jobs'),
+    CCNavItem(PhosphorIconsRegular.user, PhosphorIconsFill.user, 'You'),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _i, children: _pages),
-      bottomNavigationBar: NavigationBar(
-        backgroundColor: CC.surface,
-        height: 66,
-        selectedIndex: _i,
-        onDestinationSelected: (v) { Haptics.select(); setState(() => _i = v); },
-        destinations: const [
-          NavigationDestination(icon: Icon(PhosphorIconsRegular.steeringWheel), selectedIcon: Icon(PhosphorIconsFill.steeringWheel, color: CC.amber), label: 'Drive'),
-          NavigationDestination(icon: Icon(PhosphorIconsRegular.listChecks), selectedIcon: Icon(PhosphorIconsFill.listChecks, color: CC.amber), label: 'Jobs'),
-          NavigationDestination(icon: Icon(PhosphorIconsRegular.user), selectedIcon: Icon(PhosphorIconsFill.user, color: CC.amber), label: 'You'),
-        ],
-      ),
+      bottomNavigationBar: CCBottomNav(items: _items, index: _i, onChanged: (v) => setState(() => _i = v)),
     );
   }
 }
@@ -132,38 +129,92 @@ class _PartnerHomeState extends State<_PartnerHome> {
       const Positioned.fill(child: LiveMap(interactive: true)),
       SafeArea(
         child: Column(children: [
+          // Status + notifications, floating over the map.
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Row(children: [
+              _statusPill(),
+              const Spacer(),
+              _bell(context),
+            ]),
+          ),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: CCCard(child: Row(children: [
-              Expanded(child: _stat('Today', 'GHC ${(e['today'] ?? 0)}')),
+              Expanded(child: _stat('Today', 'GHS ${(e['today'] ?? 0)}')),
               Container(width: 1, height: 34, color: CC.line),
-              Expanded(child: _stat('Week', 'GHC ${(e['week'] ?? 0)}')),
+              Expanded(child: _stat('This week', 'GHS ${(e['week'] ?? 0)}')),
               Container(width: 1, height: 34, color: CC.line),
               Expanded(child: _stat('Rating', '${(p['ratingAvg'] ?? 5.0)}')),
             ])),
           ),
           const Spacer(),
           Padding(
-            padding: const EdgeInsets.all(20),
-            child: GestureDetector(
-              onTap: () { Haptics.success(); _toggleOnline(); },
-              child: Container(
-                height: 60,
-                decoration: BoxDecoration(
-                  color: _online ? CC.success : CC.surfaceHi,
-                  borderRadius: BorderRadius.circular(CC.radiusSm),
-                  border: Border.all(color: _online ? CC.success : CC.line),
-                ),
-                alignment: Alignment.center,
-                child: Text(_online ? "You're online — waiting for jobs" : 'Go online',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: _online ? CC.ink : CC.text)),
-              ),
-            ),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: _goButton(),
           ),
         ]),
       ),
       if (_request != null) _RequestCard(req: _request!, onAccept: _accept, onReject: () => setState(() => _request = null)),
     ]);
+  }
+
+  Widget _statusPill() {
+    final c = _online ? CC.statusOnline : CC.statusOffline;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+      decoration: BoxDecoration(
+        color: CC.surface,
+        borderRadius: BorderRadius.circular(CC.pill),
+        border: Border.all(color: CC.line),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          width: 9, height: 9,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle, color: c,
+            boxShadow: [BoxShadow(color: c.withValues(alpha: 0.6), blurRadius: 8)],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(_online ? 'Online' : 'Offline',
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: CC.text)),
+      ]),
+    );
+  }
+
+  Widget _bell(BuildContext context) => GestureDetector(
+        onTap: () { Haptics.tap(); Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen())); },
+        child: Container(
+          width: 42, height: 42,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(color: CC.surface, shape: BoxShape.circle, border: Border.all(color: CC.line)),
+          child: const Icon(PhosphorIconsRegular.bell, size: 20, color: CC.text),
+        ),
+      );
+
+  Widget _goButton() {
+    final online = _online;
+    return GestureDetector(
+      onTap: () { Haptics.success(); _toggleOnline(); },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        height: 64,
+        decoration: BoxDecoration(
+          color: online ? CC.statusOnline : CC.amber,
+          borderRadius: BorderRadius.circular(CC.radiusMd),
+          boxShadow: [BoxShadow(color: (online ? CC.statusOnline : CC.amber).withValues(alpha: 0.3), blurRadius: 22, spreadRadius: -6, offset: const Offset(0, 8))],
+        ),
+        alignment: Alignment.center,
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(online ? PhosphorIconsFill.pause : PhosphorIconsFill.power, color: CC.ink, size: 20),
+          const SizedBox(width: 10),
+          Text(online ? "You're online — tap to stop" : 'Go online',
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: CC.ink)),
+        ]),
+      ),
+    );
   }
 
   Widget _stat(String label, String value) => Column(children: [
@@ -381,44 +432,106 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
 // ── Account ──
 class _PartnerAccount extends StatelessWidget {
   const _PartnerAccount();
+
+  void _go(BuildContext c, Widget s) => Navigator.push(c, MaterialPageRoute(builder: (_) => s));
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final user = auth.user;
     return Scaffold(
       appBar: AppBar(title: const Text('You')),
-      body: ListView(padding: const EdgeInsets.all(20), children: [
-        Row(children: [
-          CCAvatar(user?.initials ?? 'P', size: 60),
-          const SizedBox(width: 16),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(user?.fullName ?? 'Partner', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-            Text(user?.email ?? '', style: const TextStyle(color: CC.textDim)),
-          ])),
-        ]),
-        const SizedBox(height: 26),
-        _row(context, PhosphorIconsRegular.wallet, 'Earnings & payout', const PartnerEarningsScreen()),
-        _row(context, PhosphorIconsRegular.car, 'Vehicle details', const VehicleScreen()),
-        _row(context, PhosphorIconsRegular.sealCheck, 'Verification', const VerificationScreen(type: 'DRIVER')),
-        _row(context, PhosphorIconsRegular.bell, 'Notifications', const NotificationsScreen()),
-        const SizedBox(height: 8),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(PhosphorIconsRegular.signOut, color: CC.danger),
-          title: const Text('Sign out', style: TextStyle(fontWeight: FontWeight.w600, color: CC.danger)),
-          onTap: () => auth.signOut(),
+      body: ListView(padding: const EdgeInsets.fromLTRB(20, 8, 20, 32), children: [
+        CCCard(
+          padding: const EdgeInsets.all(16),
+          child: Row(children: [
+            CCAvatar(user?.initials ?? 'P', size: 58, imageUrl: user?.profilePhoto),
+            const SizedBox(width: 14),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(user?.fullName ?? 'Partner',
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18, letterSpacing: -0.2)),
+              const SizedBox(height: 3),
+              Text(user?.email ?? user?.phone ?? '',
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: CC.textDim, fontSize: 13.5, fontWeight: FontWeight.w500)),
+              if (user?.isVerified == true) ...[
+                const SizedBox(height: 8),
+                const CCBadge('Verified partner', icon: PhosphorIconsFill.sealCheck, tone: CCBadgeTone.success),
+              ],
+            ])),
+          ]),
         ),
+        const SizedBox(height: 22),
+        _PartnerGroup(rows: [
+          _PartnerRow(PhosphorIconsRegular.wallet, 'Earnings & payout', () => _go(context, const PartnerEarningsScreen())),
+          _PartnerRow(PhosphorIconsRegular.car, 'Vehicle details', () => _go(context, const VehicleScreen())),
+          _PartnerRow(PhosphorIconsRegular.sealCheck, 'Verification', () => _go(context, const VerificationScreen(type: 'DRIVER'))),
+          _PartnerRow(PhosphorIconsRegular.bell, 'Notifications', () => _go(context, const NotificationsScreen())),
+        ]),
+        const SizedBox(height: 14),
+        _PartnerGroup(rows: [
+          _PartnerRow(PhosphorIconsRegular.signOut, 'Sign out', () => auth.signOut(), danger: true),
+        ]),
       ]),
     );
   }
+}
 
-  Widget _row(BuildContext context, IconData icon, String label, Widget screen) => ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: Icon(icon, color: CC.text),
-        title: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-        trailing: const Icon(PhosphorIconsRegular.caretRight, size: 16, color: CC.textFaint),
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => screen)),
-      );
+/// Grouped settings card (Revolut/Notion) — shared shape with the user app.
+class _PartnerGroup extends StatelessWidget {
+  final List<_PartnerRow> rows;
+  const _PartnerGroup({required this.rows});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: CC.surface,
+        borderRadius: BorderRadius.circular(CC.radius),
+        border: Border.all(color: CC.line, width: 1),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(children: [
+        for (var i = 0; i < rows.length; i++) ...[
+          rows[i],
+          if (i != rows.length - 1)
+            const Padding(padding: EdgeInsets.only(left: 62), child: Divider(height: 1, thickness: 1, color: CC.hair)),
+        ],
+      ]),
+    );
+  }
+}
+
+class _PartnerRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool danger;
+  const _PartnerRow(this.icon, this.label, this.onTap, {this.danger = false});
+  @override
+  Widget build(BuildContext context) {
+    final c = danger ? CC.danger : CC.text;
+    return InkWell(
+      onTap: () { Haptics.tap(); onTap(); },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        child: Row(children: [
+          Container(
+            width: 34, height: 34,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: danger ? CC.danger.withValues(alpha: 0.12) : CC.surfaceHi,
+              borderRadius: BorderRadius.circular(CC.radiusXs),
+            ),
+            child: Icon(icon, size: 18, color: c),
+          ),
+          const SizedBox(width: 14),
+          Expanded(child: Text(label, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: c))),
+          if (!danger) const Icon(PhosphorIconsRegular.caretRight, size: 16, color: CC.textFaint),
+        ]),
+      ),
+    );
+  }
 }
 
 class _RequestCard extends StatefulWidget {
@@ -462,7 +575,7 @@ class _RequestCardState extends State<_RequestCard> with SingleTickerProviderSta
           Row(children: [
             Text(isOrder ? 'New delivery' : 'New ride request', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
             const Spacer(),
-            Text('GHC $money', style: AppTheme.mono(size: 17, color: CC.amber)),
+            Text('GHS $money', style: AppTheme.mono(size: 17, color: CC.amber)),
           ]),
           const SizedBox(height: 14),
           _row(PhosphorIconsFill.circle, pickup['address'] ?? '—', CC.success),

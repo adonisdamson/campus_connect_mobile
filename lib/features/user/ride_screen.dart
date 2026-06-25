@@ -355,7 +355,7 @@ class _RideScreenState extends State<RideScreen> {
                 ],
               ),
             ),
-            Text('GHC ${e.fareEstimate.toStringAsFixed(2)}', style: AppTheme.mono(weight: FontWeight.w500)),
+            Text('GHS ${e.fareEstimate.toStringAsFixed(2)}', style: AppTheme.mono(weight: FontWeight.w500)),
           ],
         ),
       ),

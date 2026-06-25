@@ -118,7 +118,7 @@ class _ModifierSheetState extends State<_ModifierSheet> {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: CCButton(
-                _valid ? 'Add  •  GHC ${total.toStringAsFixed(2)}' : 'Select required options',
+                _valid ? 'Add  •  GHS ${total.toStringAsFixed(2)}' : 'Select required options',
                 onTap: _valid ? () => Navigator.pop(context, _result()) : null,
               ),
             ),
@@ -148,7 +148,7 @@ class _ModifierSheetState extends State<_ModifierSheet> {
           ),
           const SizedBox(width: 12),
           Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600))),
-          if (price > 0) Text('+GHC ${price.toStringAsFixed(2)}', style: AppTheme.mono(size: 12.5, color: CC.textDim)),
+          if (price > 0) Text('+GHS ${price.toStringAsFixed(2)}', style: AppTheme.mono(size: 12.5, color: CC.textDim)),
         ]),
       ),
     );

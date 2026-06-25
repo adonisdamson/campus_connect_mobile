@@ -14,7 +14,7 @@ Future<void> shareReceipt({
   required double total,
 }) async {
   final doc = pw.Document();
-  const lime = PdfColor.fromInt(0xFFCBFF3C);
+  const lime = PdfColor.fromInt(0xFF00C853);
   const ink = PdfColor.fromInt(0xFF0E0F12);
 
   doc.addPage(pw.Page(
@@ -44,7 +44,7 @@ Future<void> shareReceipt({
         pw.SizedBox(height: 6),
         pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
           pw.Text('TOTAL', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-          pw.Text('GHC ${total.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+          pw.Text('GHS ${total.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
         ]),
         pw.Spacer(),
         pw.Text('Thank you for riding & ordering on campus 💚', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),

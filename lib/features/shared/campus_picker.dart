@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../core/campus.dart';
 import '../../core/haptics.dart';
+import '../../core/skeletons.dart';
 import '../../core/theme.dart';
 import '../../models.dart';
 
@@ -48,7 +49,7 @@ class _CampusPickerState extends State<_CampusPicker> {
         ),
         Expanded(
           child: _loading
-              ? const Center(child: CircularProgressIndicator())
+              ? Skeletons.list()
               : ListView.separated(
                   itemCount: _unis.length,
                   separatorBuilder: (_, __) => const Divider(color: CC.line, height: 1),

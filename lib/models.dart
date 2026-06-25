@@ -86,7 +86,8 @@ class Trip {
 }
 
 class Listing {
-  final String id, title, description;
+  final String id, title, description, condition;
+  final String? locationName, categoryName;
   final double price;
   final bool negotiable;
   final List<String> images;
@@ -95,10 +96,25 @@ class Listing {
       : id = j['id'],
         title = j['title'] ?? '',
         description = j['description'] ?? '',
+        condition = j['condition'] ?? 'USED',
+        locationName = j['locationName'],
+        categoryName = j['category']?['name'],
         price = _d(j['price']),
         negotiable = j['negotiable'] ?? false,
         images = ((j['images'] as List?) ?? []).map((e) => '${e['url']}').toList(),
         seller = j['seller'];
+
+  String get sellerName => (seller?['fullName'] ?? 'Seller').toString();
+  String? get sellerPhoto => seller?['profilePhoto'] as String?;
+  bool get sellerVerified => seller?['isVerified'] == true;
+
+  /// "Like new", "New", "Used", "For parts".
+  String get conditionLabel => switch (condition) {
+        'NEW' => 'New',
+        'LIKE_NEW' => 'Like new',
+        'FOR_PARTS' => 'For parts',
+        _ => 'Used',
+      };
 }
 
 class Vendor {
@@ -140,6 +156,8 @@ class Product {
 class ServiceItem {
   final String id, title, description, priceType;
   final double basePrice, rating;
+  final int ratingCount;
+  final String? coverUrl, categoryName;
   final Map? provider;
   ServiceItem.fromJson(Map j)
       : id = j['id'],
@@ -148,5 +166,22 @@ class ServiceItem {
         priceType = j['priceType'] ?? 'STARTING_AT',
         basePrice = _d(j['basePrice']),
         rating = _d(j['ratingAvg']),
+        ratingCount = (j['ratingCount'] as num?)?.toInt() ?? 0,
+        coverUrl = j['coverUrl'],
+        categoryName = j['category']?['name'],
         provider = j['provider'];
+
+  String get providerName =>
+      (provider?['user']?['fullName'] ?? 'Campus pro').toString();
+  String? get providerPhoto => provider?['user']?['profilePhoto'] as String?;
+
+  /// "from GHS 30" / "GHS 30/hr" depending on price type.
+  String get priceLabel {
+    final n = basePrice.toStringAsFixed(0);
+    return switch (priceType) {
+      'HOURLY' => 'GHS $n/hr',
+      'FIXED' => 'GHS $n',
+      _ => 'from GHS $n',
+    };
+  }
 }

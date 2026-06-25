@@ -8,6 +8,7 @@ import 'features/user/cart.dart';
 import 'features/user/user_shell.dart';
 import 'features/partner/partner_app.dart';
 import 'features/admin/admin_app.dart';
+import 'features/admin/admin_theme.dart';
 
 class CampusConnectApp extends StatelessWidget {
   const CampusConnectApp({super.key});
@@ -40,7 +41,7 @@ class _Root extends StatelessWidget {
       AuthState.signedIn => switch (AppConfig.flavor) {
           AppFlavor.user => const UserShell(),
           AppFlavor.partner => const PartnerShell(),
-          AppFlavor.admin => const AdminShell(),
+          AppFlavor.admin => Theme(data: AdminTheme.build(), child: const AdminShell()),
         },
     };
   }

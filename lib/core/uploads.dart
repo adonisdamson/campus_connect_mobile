@@ -15,4 +15,17 @@ class Uploads {
     }
     return url;
   }
+
+  /// Uploads a private KYC document (ID / selfie) and returns its opaque key
+  /// (`kyc:<name>`). KYC files are never public — the backend serves them only
+  /// through short-lived signed URLs to the owner and reviewing admins.
+  static Future<String> uploadKyc(String filePath, String fileName) async {
+    final res = await Api.instance
+        .uploadFile('/uploads', filePath, fileName: fileName, fields: {'purpose': 'kyc'});
+    final key = res['key'] as String?;
+    if (key == null || key.isEmpty) {
+      throw ApiException('Upload failed — please try again');
+    }
+    return key;
+  }
 }

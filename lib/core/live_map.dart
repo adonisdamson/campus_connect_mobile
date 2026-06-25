@@ -201,7 +201,7 @@ class _GridPainter extends CustomPainter {
 
 /// Draws / replaces a route polyline on a map controller, then frames it.
 class RouteLine {
-  Future<void> draw(MapLibreMapController c, List<LatLng> points, {String color = '#CBFF3C', bool fit = true}) async {
+  Future<void> draw(MapLibreMapController c, List<LatLng> points, {String color = '#00C853', bool fit = true}) async {
     if (points.length < 2) return;
     await c.clearLines();
     await c.addLine(LineOptions(geometry: points, lineColor: color, lineWidth: 5, lineOpacity: 0.9));

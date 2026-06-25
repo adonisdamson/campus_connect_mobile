@@ -48,11 +48,17 @@ app.*.map.json
 .env
 local.properties
 
-# Real Firebase configs (injected via CI secrets) — only ignore flavor-specific ones
-# The placeholder at android/app/google-services.json CAN be committed
-android/app/src/household/google-services.json
-android/app/src/collector/google-services.json
+# Real Firebase client configs — kept out of the (public) repo and injected via
+# CI secrets. NOTE: google-services.json is NOT a true secret (its API key is
+# restricted by package name + SHA-1), but ignoring it keeps the public repo
+# clean and forces CI to use the canonical copy.
+android/app/src/user/google-services.json
+android/app/src/partner/google-services.json
+android/app/src/admin/google-services.json
+# Signing keystores & their passwords — these ARE secrets, never commit.
 release.jks
 android/app/release.jks
 android/app/keystore.jks
+key.properties
+android/key.properties
 android/build/

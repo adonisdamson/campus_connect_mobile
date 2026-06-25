@@ -73,7 +73,7 @@ class _ActivityScreenState extends State<ActivityScreen> with SingleTickerProvid
             Text('${t['pickupAddress']} → ${t['dropoffAddress']}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
             Text('${t['status']}'.replaceAll('_', ' '), style: const TextStyle(color: CC.textDim, fontSize: 12.5)),
           ])),
-          Text('GHC ${t['fareFinal'] ?? t['fareEstimate']}', style: AppTheme.mono(color: CC.accent)),
+          Text('GHS ${t['fareFinal'] ?? t['fareEstimate']}', style: AppTheme.mono(color: CC.accent)),
         ]),
       ));
 
@@ -86,19 +86,19 @@ class _ActivityScreenState extends State<ActivityScreen> with SingleTickerProvid
             Text('${o['type']} • ${o['vendor']?['name'] ?? o['dropoffAddress'] ?? ''}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
             Text('${o['status']}'.replaceAll('_', ' '), style: const TextStyle(color: CC.textDim, fontSize: 12.5)),
           ])),
-          Text('GHC ${o['total']}', style: AppTheme.mono(color: CC.accent)),
+          Text('GHS ${o['total']}', style: AppTheme.mono(color: CC.accent)),
         ]),
       ));
 
-  Widget _services() => _list(_bookings, PhosphorIconsRegular.sparkle, 'No bookings yet', (b) => CCCard(
+  Widget _services() => _list(_bookings, PhosphorIconsRegular.calendarCheck, 'No bookings yet', (b) => CCCard(
         child: Row(children: [
-          _icon(PhosphorIconsFill.sparkle),
+          _icon(PhosphorIconsFill.calendarCheck),
           const SizedBox(width: 14),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('${b['service']?['title'] ?? 'Service'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
             Text('${b['status']}'.replaceAll('_', ' '), style: const TextStyle(color: CC.textDim, fontSize: 12.5)),
           ])),
-          Text('GHC ${b['agreedPrice'] ?? ''}', style: AppTheme.mono(color: CC.accent)),
+          Text('GHS ${b['agreedPrice'] ?? ''}', style: AppTheme.mono(color: CC.accent)),
         ]),
       ));
 

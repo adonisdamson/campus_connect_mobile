@@ -86,7 +86,7 @@ class _VendorStoreScreenState extends State<VendorStoreScreen> {
             child: Text('${o['status']}'.replaceAll('_', ' '), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: CC.lime)),
           ),
           const Spacer(),
-          Text('GHC ${o['total']}', style: AppTheme.mono(color: CC.accent)),
+          Text('GHS ${o['total']}', style: AppTheme.mono(color: CC.accent)),
         ]),
         const SizedBox(height: 10),
         ...items.map((it) => Padding(

@@ -49,7 +49,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         'DELIVERY' => PhosphorIconsFill.package,
         'PAYMENT' => PhosphorIconsFill.wallet,
         'MARKETPLACE' => PhosphorIconsFill.storefront,
-        'SERVICE' => PhosphorIconsFill.sparkle,
+        'SERVICE' => PhosphorIconsFill.calendarCheck,
         'PROMO' => PhosphorIconsFill.tag,
         'CHAT' => PhosphorIconsFill.chatCircle,
         _ => PhosphorIconsFill.bell,

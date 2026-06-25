@@ -49,7 +49,7 @@ Future<String?> pickPayment(BuildContext context, {String selected = 'CASH'}) as
           ..._methods.map((m) {
             final isSel = m.code == selected;
             final sub = m.code == 'WALLET' && balance != null
-                ? 'Balance GHC ${balance.toStringAsFixed(2)}'
+                ? 'Balance GHS ${balance.toStringAsFixed(2)}'
                 : m.sub;
             return InkWell(
               borderRadius: BorderRadius.circular(14),
@@ -83,7 +83,7 @@ Future<String?> pickPayment(BuildContext context, {String selected = 'CASH'}) as
   );
 }
 
-/// Bottom sheet to choose a top-up amount (presets + custom). Returns GHC amount.
+/// Bottom sheet to choose a top-up amount (presets + custom). Returns GHS amount.
 Future<double?> pickTopupAmount(BuildContext context) async {
   const presets = [20.0, 50.0, 100.0, 200.0];
   final custom = TextEditingController();
@@ -107,12 +107,12 @@ Future<double?> pickTopupAmount(BuildContext context) async {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 decoration: BoxDecoration(color: CC.surfaceHi, borderRadius: BorderRadius.circular(14)),
-                child: Text('GHC ${p.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w700, color: CC.lime)),
+                child: Text('GHS ${p.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w700, color: CC.lime)),
               ),
             ),
         ]),
         const SizedBox(height: 16),
-        CCField('Custom amount (GHC)', custom, icon: PhosphorIconsRegular.currencyDollar, keyboard: TextInputType.number),
+        CCField('Custom amount (GHS)', custom, icon: PhosphorIconsRegular.currencyDollar, keyboard: TextInputType.number),
         const SizedBox(height: 16),
         CCButton('Continue', onTap: () {
           final v = double.tryParse(custom.text.trim());

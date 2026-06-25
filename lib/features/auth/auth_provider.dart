@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../core/api.dart';
 import '../../core/campus.dart';
 import '../../core/socket.dart';
@@ -58,6 +60,41 @@ class AuthProvider extends ChangeNotifier {
       }));
 
   Future<bool> guest() => _consume(Api.instance.post('/auth/guest'));
+
+  /// Google sign-in / sign-up. Returns false (silently) if the user cancels the
+  /// Google picker; surfaces [error] for anything that actually went wrong.
+  Future<bool> signInWithGoogle({String? universityId}) async {
+    error = null;
+    try {
+      final googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) return false; // cancelled by user
+
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      final cred = await FirebaseAuth.instance.signInWithCredential(credential);
+      final idToken = await cred.user?.getIdToken();
+      if (idToken == null) {
+        error = 'Could not complete Google sign-in';
+        notifyListeners();
+        return false;
+      }
+      return _consume(Api.instance.post('/auth/google', {
+        'idToken': idToken,
+        if (universityId != null) 'universityId': universityId,
+      }));
+    } on FirebaseAuthException catch (e) {
+      error = e.message ?? 'Google sign-in failed';
+      notifyListeners();
+      return false;
+    } catch (e) {
+      error = 'Google sign-in failed';
+      notifyListeners();
+      return false;
+    }
+  }
 
   Future<void> refreshMe() async {
     try {

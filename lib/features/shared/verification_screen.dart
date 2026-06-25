@@ -56,15 +56,16 @@ class _VerificationScreenState extends State<VerificationScreen> {
     }
     setState(() => _submitting = true);
     try {
-      // Uploads to the backend and returns a real, admin-viewable URL.
-      final idUrl = await Uploads.uploadImage(_idImage!.path, _idImage!.name);
-      final selfieUrl = await Uploads.uploadImage(_selfie!.path, _selfie!.name);
+      // KYC docs upload privately → opaque keys (never public URLs). Admins view
+      // them only via short-lived signed URLs minted server-side.
+      final idKey = await Uploads.uploadKyc(_idImage!.path, _idImage!.name);
+      final selfieKey = await Uploads.uploadKyc(_selfie!.path, _selfie!.name);
       await Api.instance.post('/verification', {
         'type': widget.type,
         'idDocType': _docType,
         'idNumber': _idNumber.text.trim(),
-        'idFrontUrl': idUrl,
-        'selfieUrl': selfieUrl,
+        'idFrontUrl': idKey,
+        'selfieUrl': selfieKey,
         'faceMatchScore': 0.9,
       });
       if (!mounted) return;

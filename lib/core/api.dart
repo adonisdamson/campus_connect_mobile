@@ -33,8 +33,9 @@ class Api {
   /// Multipart upload of a single file. Dio swaps the Content-Type to
   /// multipart/form-data automatically when the body is FormData.
   Future<Map<String, dynamic>> uploadFile(String path, String filePath,
-      {String fieldName = 'file', String? fileName}) async {
+      {String fieldName = 'file', String? fileName, Map<String, String>? fields}) async {
     final form = FormData.fromMap({
+      ...?fields,
       fieldName: await MultipartFile.fromFile(filePath, filename: fileName),
     });
     return _send(() => _dio.post(path, data: form));
@@ -72,9 +73,21 @@ class _AuthInterceptor extends Interceptor {
     handler.next(options);
   }
 
+  // Token-minting / credential endpoints: a 401 here means bad credentials or a
+  // dead refresh token, NOT an expired access token — so don't try to refresh.
+  // Everything else (including `/auth/me`, hit on every cold start) is eligible,
+  // which is what keeps a session alive across app restarts.
+  static bool _isAuthFlow(String p) =>
+      p.contains('/auth/login') ||
+      p.contains('/auth/register') ||
+      p.contains('/auth/google') ||
+      p.contains('/auth/guest') ||
+      p.contains('/auth/otp') ||
+      p.contains('/auth/refresh');
+
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    if (err.response?.statusCode == 401 && !err.requestOptions.path.contains('/auth/')) {
+    if (err.response?.statusCode == 401 && !_isAuthFlow(err.requestOptions.path)) {
       final refreshed = await _tryRefresh();
       if (refreshed) {
         final token = await TokenStore.accessToken;

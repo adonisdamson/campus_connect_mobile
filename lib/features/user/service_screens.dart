@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../core/api.dart';
+import '../../core/cc_image.dart';
+import '../../core/icons.dart';
+import '../../core/skeletons.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 
@@ -51,7 +54,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_loading) return Scaffold(appBar: AppBar(title: const Text('Service')), body: Skeletons.tiles());
     if (_s == null) return const Scaffold(body: CCEmpty(icon: PhosphorIconsRegular.warning, title: 'Not found', subtitle: 'This service is unavailable.'));
     final provider = _s!['provider'] ?? {};
     final providerUser = provider['user'] ?? {};
@@ -60,22 +63,26 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: CCButton('Book  •  GHC ${_s!['basePrice']}', icon: PhosphorIconsFill.calendarCheck, loading: _booking, onTap: _book),
+          child: CCButton('Book  •  GHS ${_s!['basePrice']}', icon: PhosphorIconsFill.calendarCheck, loading: _booking, onTap: _book),
         ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Container(
-            height: 150, width: double.infinity,
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(CC.radius), gradient: const LinearGradient(colors: [CC.surfaceHi, CC.surface])),
-            child: const Center(child: Icon(PhosphorIconsFill.sparkle, size: 44, color: CC.lime)),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(CC.radius),
+            child: CCImage(
+              _s!['coverUrl']?.toString(),
+              width: double.infinity,
+              height: 200,
+              fallbackIcon: CCIcons.of(_s!['category']?['name']?.toString() ?? _s!['title']?.toString()),
+            ),
           ),
           const SizedBox(height: 18),
           Text('${_s!['title']}', style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 8),
           Row(children: [
-            Text('GHC ${_s!['basePrice']}', style: AppTheme.mono(size: 20, color: CC.accent)),
+            Text('GHS ${_s!['basePrice']}', style: AppTheme.mono(size: 20, color: CC.accent)),
             Text('  ${(_s!['priceType'] ?? '').toString().replaceAll('_', ' ').toLowerCase()}', style: const TextStyle(color: CC.textDim)),
             const Spacer(),
             const Icon(PhosphorIconsFill.star, size: 15, color: CC.warning),

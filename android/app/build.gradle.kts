@@ -3,9 +3,9 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
-    // NOTE: Firebase/Google-services is intentionally NOT applied yet. Re-add
-    // `id("com.google.gms.google-services")` + per-flavor google-services.json
-    // once a Campus Connect Firebase project is configured.
+    // Firebase: processes the per-flavor google-services.json (Auth / Google
+    // sign-in / messaging). Project: campus-connect-84893.
+    id("com.google.gms.google-services")
 }
 
 android {

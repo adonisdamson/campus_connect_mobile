@@ -117,9 +117,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     final items = (o['items'] as List?) ?? [];
     final rows = <ReceiptRow>[
       (label: 'Type', value: '${o['type'] ?? 'Delivery'}'),
-      for (final it in items) (label: '${it['quantity']}× ${it['name']}', value: 'GHC ${it['lineTotal']}'),
-      (label: 'Delivery fee', value: 'GHC ${o['deliveryFee'] ?? 0}'),
-      (label: 'Service fee', value: 'GHC ${o['serviceFee'] ?? 0}'),
+      for (final it in items) (label: '${it['quantity']}× ${it['name']}', value: 'GHS ${it['lineTotal']}'),
+      (label: 'Delivery fee', value: 'GHS ${o['deliveryFee'] ?? 0}'),
+      (label: 'Service fee', value: 'GHS ${o['serviceFee'] ?? 0}'),
     ];
     await shareReceipt(
       title: 'Delivery receipt',

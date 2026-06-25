@@ -7,6 +7,8 @@ import '../../core/skeletons.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../auth/auth_provider.dart';
+import 'admin_theme.dart';
+import 'admin_widgets.dart';
 
 class AdminShell extends StatefulWidget {
   const AdminShell({super.key});
@@ -47,12 +49,12 @@ class _AdminShellState extends State<AdminShell> {
       bottomNavigationBar: tabs.length < 2
           ? null
           : NavigationBar(
-              backgroundColor: CC.surface,
+              backgroundColor: AC.surface,
               height: 66,
               selectedIndex: idx,
               onDestinationSelected: (v) { Haptics.select(); setState(() => _i = v); },
               destinations: tabs
-                  .map((t) => NavigationDestination(icon: Icon(t.icon), selectedIcon: Icon(t.selected, color: CC.violet), label: t.label))
+                  .map((t) => NavigationDestination(icon: Icon(t.icon), selectedIcon: Icon(t.selected, color: AC.violet), label: t.label))
                   .toList(),
             ),
     );
@@ -98,11 +100,11 @@ class _OverviewState extends State<_Overview> {
       child: ListView(padding: const EdgeInsets.all(16), children: [
         Container(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(CC.radius), gradient: const LinearGradient(colors: [CC.violet, Color(0xFF6C5CE7)])),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(AC.radius), gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF22D3EE), AC.accent])),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('REVENUE (30 DAYS)', style: TextStyle(color: CC.ink.withValues(alpha: 0.7), fontWeight: FontWeight.w700, fontSize: 11, letterSpacing: 1)),
+            Text('REVENUE (30 DAYS)', style: TextStyle(color: AC.ink.withValues(alpha: 0.7), fontWeight: FontWeight.w700, fontSize: 11, letterSpacing: 1)),
             const SizedBox(height: 6),
-            Text('GHC ${(_dash?['revenue30d'] ?? 0).toStringAsFixed(2)}', style: AppTheme.mono(size: 30, color: CC.ink)),
+            Text('GHS ${(_dash?['revenue30d'] ?? 0).toStringAsFixed(2)}', style: AppTheme.mono(size: 30, color: AC.ink)),
           ]),
         ),
         const SizedBox(height: 14),
@@ -130,21 +132,21 @@ class _OverviewState extends State<_Overview> {
     );
   }
 
-  Widget _live2(String label, String value, IconData icon) => Expanded(child: CCCard(
+  Widget _live2(String label, String value, IconData icon) => Expanded(child: ACard(
         padding: const EdgeInsets.all(14),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(icon, color: CC.violet, size: 18),
+          Icon(icon, color: AC.violet, size: 18),
           const SizedBox(height: 8),
-          Text(value, style: AppTheme.mono(size: 18)),
-          Text(label, style: const TextStyle(color: CC.textDim, fontSize: 10.5)),
+          Text(value, style: AppTheme.mono(size: 18, color: AC.text)),
+          Text(label, style: const TextStyle(color: AC.textDim, fontSize: 10.5)),
         ]),
       ));
 
-  Widget _metric(String label, String value, IconData icon) => CCCard(
+  Widget _metric(String label, String value, IconData icon) => ACard(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Icon(icon, color: CC.violet, size: 20),
-          Text(value, style: AppTheme.mono(size: 22)),
-          Text(label, style: const TextStyle(color: CC.textDim, fontSize: 12)),
+          Icon(icon, color: AC.violet, size: 20),
+          Text(value, style: AppTheme.mono(size: 22, color: AC.text)),
+          Text(label, style: const TextStyle(color: AC.textDim, fontSize: 12)),
         ]),
       );
 }
@@ -189,13 +191,13 @@ class _UsersState extends State<_Users> {
         child: TextField(
           controller: _search,
           onSubmitted: (_) => _load(),
-          style: const TextStyle(color: CC.text),
+          style: const TextStyle(color: AC.text),
           decoration: InputDecoration(
             hintText: 'Search name, email, phone…',
-            hintStyle: const TextStyle(color: CC.textFaint),
-            prefixIcon: const Icon(PhosphorIconsRegular.magnifyingGlass, color: CC.textFaint, size: 18),
-            filled: true, fillColor: CC.surfaceHi,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(CC.radiusSm), borderSide: BorderSide.none),
+            hintStyle: const TextStyle(color: AC.textFaint),
+            prefixIcon: const Icon(PhosphorIconsRegular.magnifyingGlass, color: AC.textFaint, size: 18),
+            filled: true, fillColor: AC.surfaceHi,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(AC.radiusSm), borderSide: BorderSide.none),
           ),
         ),
       ),
@@ -207,7 +209,7 @@ class _UsersState extends State<_Users> {
                 : ListView.separated(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     itemCount: _users.length,
-                    separatorBuilder: (_, __) => const Divider(color: CC.line, height: 1),
+                    separatorBuilder: (_, __) => const Divider(color: AC.line, height: 1),
                     itemBuilder: (_, i) => _userTile(_users[i]),
                   ),
       ),
@@ -216,13 +218,13 @@ class _UsersState extends State<_Users> {
 
   Widget _userTile(Map u) {
     final status = u['status'] ?? 'ACTIVE';
-    final color = status == 'ACTIVE' ? CC.success : status == 'SUSPENDED' ? CC.warning : CC.danger;
+    final color = status == 'ACTIVE' ? AC.success : status == 'SUSPENDED' ? AC.warning : AC.danger;
     return ListTile(
       leading: CCAvatar((u['fullName'] ?? u['email'] ?? 'U').toString().substring(0, 1).toUpperCase()),
       title: Text('${u['fullName'] ?? 'Unnamed'}', style: const TextStyle(fontWeight: FontWeight.w700)),
-      subtitle: Text('${u['email'] ?? u['phone'] ?? ''} • ${u['campusRole'] ?? ''}', style: const TextStyle(color: CC.textDim, fontSize: 12.5)),
+      subtitle: Text('${u['email'] ?? u['phone'] ?? ''} • ${u['campusRole'] ?? ''}', style: const TextStyle(color: AC.textDim, fontSize: 12.5)),
       trailing: PopupMenuButton<String>(
-        color: CC.surfaceHi,
+        color: AC.surfaceHi,
         icon: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)), child: Text(status, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700))),
         onSelected: (v) => _setStatus(u['id'], v),
         itemBuilder: (_) => const [
@@ -271,10 +273,10 @@ class _VerifyState extends State<_Verify> {
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: Image.network('$url', width: 66, height: 66, fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(width: 66, height: 66, color: CC.surfaceHi, child: const Icon(PhosphorIconsRegular.image, color: CC.textFaint))),
+                errorBuilder: (_, __, ___) => Container(width: 66, height: 66, color: AC.surfaceHi, child: const Icon(PhosphorIconsRegular.image, color: AC.textFaint))),
           ),
           const SizedBox(height: 4),
-          Text(label, style: const TextStyle(fontSize: 10.5, color: CC.textDim)),
+          Text(label, style: const TextStyle(fontSize: 10.5, color: AC.textDim)),
         ]),
       ),
     );
@@ -282,7 +284,7 @@ class _VerifyState extends State<_Verify> {
 
   void _viewImage(String url, String label) {
     showDialog(context: context, builder: (_) => Dialog(
-      backgroundColor: CC.ink,
+      backgroundColor: AC.ink,
       insetPadding: const EdgeInsets.all(16),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Padding(padding: const EdgeInsets.fromLTRB(16, 12, 8, 8), child: Row(children: [
@@ -291,7 +293,7 @@ class _VerifyState extends State<_Verify> {
           IconButton(icon: const Icon(PhosphorIconsRegular.x), onPressed: () => Navigator.pop(context)),
         ])),
         Flexible(child: InteractiveViewer(
-          child: Image.network(url, errorBuilder: (_, __, ___) => const Padding(padding: EdgeInsets.all(40), child: Text('Image unavailable', style: TextStyle(color: CC.textDim)))),
+          child: Image.network(url, errorBuilder: (_, __, ___) => const Padding(padding: EdgeInsets.all(40), child: Text('Image unavailable', style: TextStyle(color: AC.textDim)))),
         )),
       ]),
     ));
@@ -303,8 +305,8 @@ class _VerifyState extends State<_Verify> {
     final pass = s >= 0.8;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: (pass ? CC.success : CC.danger).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
-      child: Text('Face ${(s * 100).toStringAsFixed(0)}%', style: TextStyle(color: pass ? CC.success : CC.danger, fontWeight: FontWeight.w700, fontSize: 11)),
+      decoration: BoxDecoration(color: (pass ? AC.success : AC.danger).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
+      child: Text('Face ${(s * 100).toStringAsFixed(0)}%', style: TextStyle(color: pass ? AC.success : AC.danger, fontWeight: FontWeight.w700, fontSize: 11)),
     );
   }
 
@@ -321,16 +323,16 @@ class _VerifyState extends State<_Verify> {
       onRefresh: _load,
       child: ListView(padding: const EdgeInsets.all(16), children: _items.map((v) {
         final user = v['user'] ?? {};
-        return Padding(padding: const EdgeInsets.only(bottom: 12), child: CCCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        return Padding(padding: const EdgeInsets.only(bottom: 12), child: ACard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: CC.surfaceHi, borderRadius: BorderRadius.circular(8)), child: Text('${v['type']}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: CC.violet))),
+            Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: AC.surfaceHi, borderRadius: BorderRadius.circular(8)), child: Text('${v['type']}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AC.violet))),
             const Spacer(),
-            Text('${v['idDocType']}'.replaceAll('_', ' '), style: const TextStyle(color: CC.textDim, fontSize: 12)),
+            Text('${v['idDocType']}'.replaceAll('_', ' '), style: const TextStyle(color: AC.textDim, fontSize: 12)),
           ]),
           const SizedBox(height: 10),
           Text(user['fullName'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-          Text('${user['email'] ?? user['phone'] ?? ''}', style: const TextStyle(color: CC.textDim, fontSize: 12.5)),
-          if (v['idNumber'] != null) Text('ID: ${v['idNumber']}', style: AppTheme.mono(size: 12, color: CC.textDim)),
+          Text('${user['email'] ?? user['phone'] ?? ''}', style: const TextStyle(color: AC.textDim, fontSize: 12.5)),
+          if (v['idNumber'] != null) Text('ID: ${v['idNumber']}', style: AppTheme.mono(size: 12, color: AC.textDim)),
           const SizedBox(height: 12),
           // Tap any document to inspect it full-screen and compare with the selfie.
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -342,9 +344,9 @@ class _VerifyState extends State<_Verify> {
           ]),
           const SizedBox(height: 14),
           Row(children: [
-            Expanded(child: CCButton('Reject', outlined: true, onTap: () => _review(v['id'], 'REJECTED'))),
+            Expanded(child: AButton('Reject', outlined: true, onTap: () => _review(v['id'], 'REJECTED'))),
             const SizedBox(width: 10),
-            Expanded(child: CCButton('Approve', onTap: () => _review(v['id'], 'APPROVED'))),
+            Expanded(child: AButton('Approve', onTap: () => _review(v['id'], 'APPROVED'))),
           ]),
         ])));
       }).toList()),
@@ -384,7 +386,7 @@ class _AdminsState extends State<_Admins> {
     final emailCtrl = TextEditingController(text: existing?['email'] ?? '');
     final chosen = <String>{...(((existing?['adminPermissions'] as List?) ?? []).map((e) => '$e'))};
     final saved = await showModalBottomSheet<bool>(
-      context: context, isScrollControlled: true, backgroundColor: CC.surface,
+      context: context, isScrollControlled: true, backgroundColor: AC.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(builder: (ctx, setSheet) {
         return Padding(
@@ -393,9 +395,9 @@ class _AdminsState extends State<_Admins> {
             Text(existing == null ? 'Add admin' : 'Edit ${existing['email']}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
             const SizedBox(height: 14),
             if (existing == null)
-              CCField('User email', emailCtrl, icon: PhosphorIconsRegular.envelope, keyboard: TextInputType.emailAddress)
+              AField('User email', emailCtrl, icon: PhosphorIconsRegular.envelope, keyboard: TextInputType.emailAddress)
             else
-              Text('Role: ${existing['role']}', style: const TextStyle(color: CC.textDim)),
+              Text('Role: ${existing['role']}', style: const TextStyle(color: AC.textDim)),
             const SizedBox(height: 16),
             const Text('Areas they can access', style: TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
@@ -405,14 +407,14 @@ class _AdminsState extends State<_Admins> {
                 label: Text(p),
                 selected: sel,
                 onSelected: (v) => setSheet(() => v ? chosen.add(p) : chosen.remove(p)),
-                backgroundColor: CC.surfaceHi,
-                selectedColor: CC.violet,
-                labelStyle: TextStyle(color: sel ? CC.ink : CC.text, fontWeight: FontWeight.w600, fontSize: 12.5),
-                checkmarkColor: CC.ink,
+                backgroundColor: AC.surfaceHi,
+                selectedColor: AC.violet,
+                labelStyle: TextStyle(color: sel ? AC.ink : AC.text, fontWeight: FontWeight.w600, fontSize: 12.5),
+                checkmarkColor: AC.ink,
               );
             }).toList()),
             const SizedBox(height: 20),
-            CCButton(existing == null ? 'Grant access' : 'Save', onTap: () => Navigator.pop(ctx, true)),
+            AButton(existing == null ? 'Grant access' : 'Save', onTap: () => Navigator.pop(ctx, true)),
           ]),
         );
       }),
@@ -426,18 +428,18 @@ class _AdminsState extends State<_Admins> {
       }
       _load();
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message), backgroundColor: CC.danger));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message), backgroundColor: AC.danger));
     }
   }
 
   Future<void> _remove(Map a) async {
     final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
-      backgroundColor: CC.surface,
+      backgroundColor: AC.surface,
       title: Text('Revoke ${a['email']}?'),
       content: const Text('They will lose all admin access.'),
       actions: [
         TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-        TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Revoke', style: TextStyle(color: CC.danger, fontWeight: FontWeight.w700))),
+        TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Revoke', style: TextStyle(color: AC.danger, fontWeight: FontWeight.w700))),
       ],
     ));
     if (ok != true) return;
@@ -445,7 +447,7 @@ class _AdminsState extends State<_Admins> {
       await Api.instance.delete('/admin/admins/${a['id']}');
       _load();
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message), backgroundColor: CC.danger));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message), backgroundColor: AC.danger));
     }
   }
 
@@ -454,7 +456,7 @@ class _AdminsState extends State<_Admins> {
     if (_loading) return Skeletons.list();
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: CC.violet, foregroundColor: CC.ink,
+        backgroundColor: AC.violet, foregroundColor: AC.ink,
         icon: const Icon(PhosphorIconsBold.plus),
         label: const Text('Add admin', style: TextStyle(fontWeight: FontWeight.w800)),
         onPressed: () => _editor(),
@@ -464,25 +466,25 @@ class _AdminsState extends State<_Admins> {
         child: ListView(padding: const EdgeInsets.all(16), children: _admins.map((a) {
           final isSuper = a['role'] == 'SUPER_ADMIN';
           final perms = ((a['adminPermissions'] as List?) ?? []).join(', ');
-          return Padding(padding: const EdgeInsets.only(bottom: 12), child: CCCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          return Padding(padding: const EdgeInsets.only(bottom: 12), child: ACard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              Icon(isSuper ? PhosphorIconsFill.shieldStar : PhosphorIconsFill.shieldCheck, color: CC.violet, size: 20),
+              Icon(isSuper ? PhosphorIconsFill.shieldStar : PhosphorIconsFill.shieldCheck, color: AC.violet, size: 20),
               const SizedBox(width: 10),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(a['fullName'] ?? a['email'] ?? 'Admin', style: const TextStyle(fontWeight: FontWeight.w700)),
-                Text(a['email'] ?? '', style: const TextStyle(color: CC.textDim, fontSize: 12.5)),
+                Text(a['email'] ?? '', style: const TextStyle(color: AC.textDim, fontSize: 12.5)),
               ])),
-              Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: CC.surfaceHi, borderRadius: BorderRadius.circular(8)),
-                child: Text(isSuper ? 'SUPER' : 'ADMIN', style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: CC.violet))),
+              Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: AC.surfaceHi, borderRadius: BorderRadius.circular(8)),
+                child: Text(isSuper ? 'SUPER' : 'ADMIN', style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: AC.violet))),
             ]),
             if (!isSuper) ...[
               const SizedBox(height: 10),
-              Text(perms.isEmpty ? 'No areas assigned' : 'Access: $perms', style: const TextStyle(color: CC.textDim, fontSize: 12.5)),
+              Text(perms.isEmpty ? 'No areas assigned' : 'Access: $perms', style: const TextStyle(color: AC.textDim, fontSize: 12.5)),
               const SizedBox(height: 10),
               Row(children: [
-                Expanded(child: CCButton('Edit', outlined: true, icon: PhosphorIconsRegular.pencilSimple, onTap: () => _editor(existing: a))),
+                Expanded(child: AButton('Edit', outlined: true, icon: PhosphorIconsRegular.pencilSimple, onTap: () => _editor(existing: a))),
                 const SizedBox(width: 10),
-                Expanded(child: CCButton('Revoke', outlined: true, icon: PhosphorIconsRegular.trash, onTap: () => _remove(a))),
+                Expanded(child: AButton('Revoke', outlined: true, icon: PhosphorIconsRegular.trash, onTap: () => _remove(a))),
               ]),
             ],
           ])));
@@ -522,20 +524,20 @@ class _OrdersState extends State<_Orders> {
     final amount = TextEditingController(text: '${o['total']}');
     final reason = TextEditingController();
     final go = await showModalBottomSheet<bool>(
-      context: context, isScrollControlled: true, backgroundColor: CC.surface,
+      context: context, isScrollControlled: true, backgroundColor: AC.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => Padding(
         padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('Refund order', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
           const SizedBox(height: 6),
-          Text('Max GHC ${o['total']} • credited to the customer\'s wallet', style: const TextStyle(color: CC.textDim, fontSize: 12.5)),
+          Text('Max GHS ${o['total']} • credited to the customer\'s wallet', style: const TextStyle(color: AC.textDim, fontSize: 12.5)),
           const SizedBox(height: 14),
-          CCField('Amount (GHC)', amount, icon: PhosphorIconsRegular.currencyDollar, keyboard: TextInputType.number),
+          AField('Amount (GHS)', amount, icon: PhosphorIconsRegular.currencyDollar, keyboard: TextInputType.number),
           const SizedBox(height: 12),
-          CCField('Reason', reason, icon: PhosphorIconsRegular.note),
+          AField('Reason', reason, icon: PhosphorIconsRegular.note),
           const SizedBox(height: 18),
-          CCButton('Issue refund', onTap: () => Navigator.pop(ctx, true)),
+          AButton('Issue refund', onTap: () => Navigator.pop(ctx, true)),
         ]),
       ),
     );
@@ -547,7 +549,7 @@ class _OrdersState extends State<_Orders> {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Refund issued')));
       _load();
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message), backgroundColor: CC.danger));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message), backgroundColor: AC.danger));
     }
   }
 
@@ -559,20 +561,20 @@ class _OrdersState extends State<_Orders> {
       onRefresh: _load,
       child: ListView(padding: const EdgeInsets.all(16), children: _items.map((o) {
         final refunded = o['refundedAt'] != null;
-        return Padding(padding: const EdgeInsets.only(bottom: 12), child: CCCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        return Padding(padding: const EdgeInsets.only(bottom: 12), child: ACard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: CC.surfaceHi, borderRadius: BorderRadius.circular(8)), child: Text('${o['type']}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: CC.violet))),
+            Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: AC.surfaceHi, borderRadius: BorderRadius.circular(8)), child: Text('${o['type']}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AC.violet))),
             const Spacer(),
-            Text('${o['status']}'.replaceAll('_', ' '), style: const TextStyle(color: CC.textDim, fontSize: 12)),
+            Text('${o['status']}'.replaceAll('_', ' '), style: const TextStyle(color: AC.textDim, fontSize: 12)),
           ]),
           const SizedBox(height: 10),
           Text('${o['customer']?['fullName'] ?? 'Customer'}${o['vendor'] != null ? ' • ${o['vendor']['name']}' : ''}', style: const TextStyle(fontWeight: FontWeight.w700)),
-          Text('GHC ${o['total']} • ${o['paymentMethod']}', style: AppTheme.mono(size: 12.5, color: CC.textDim)),
+          Text('GHS ${o['total']} • ${o['paymentMethod']}', style: AppTheme.mono(size: 12.5, color: AC.textDim)),
           const SizedBox(height: 12),
           if (refunded)
-            Row(children: [const Icon(PhosphorIconsFill.checkCircle, color: CC.success, size: 16), const SizedBox(width: 6), Text('Refunded GHC ${o['refundAmount']}', style: const TextStyle(color: CC.success, fontWeight: FontWeight.w700, fontSize: 12.5))])
+            Row(children: [const Icon(PhosphorIconsFill.checkCircle, color: AC.success, size: 16), const SizedBox(width: 6), Text('Refunded GHS ${o['refundAmount']}', style: const TextStyle(color: AC.success, fontWeight: FontWeight.w700, fontSize: 12.5))])
           else
-            Align(alignment: Alignment.centerLeft, child: CCButton('Refund', outlined: true, icon: PhosphorIconsRegular.arrowUUpLeft, onTap: () => _refund(o))),
+            Align(alignment: Alignment.centerLeft, child: AButton('Refund', outlined: true, icon: PhosphorIconsRegular.arrowUUpLeft, onTap: () => _refund(o))),
         ])));
       }).toList()),
     );
@@ -617,20 +619,20 @@ class _ReportsState extends State<_Reports> {
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(padding: const EdgeInsets.all(16), children: _items.map((r) {
-        return Padding(padding: const EdgeInsets.only(bottom: 12), child: CCCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        return Padding(padding: const EdgeInsets.only(bottom: 12), child: ACard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: CC.danger.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(8)), child: Text('${r['targetType']}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: CC.danger))),
+            Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: AC.danger.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(8)), child: Text('${r['targetType']}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AC.danger))),
             const Spacer(),
-            Text('by ${r['reporter']?['fullName'] ?? 'user'}', style: const TextStyle(color: CC.textDim, fontSize: 12)),
+            Text('by ${r['reporter']?['fullName'] ?? 'user'}', style: const TextStyle(color: AC.textDim, fontSize: 12)),
           ]),
           const SizedBox(height: 10),
           Text('${r['reason']}', style: const TextStyle(fontWeight: FontWeight.w700)),
-          if (r['note'] != null) Text('${r['note']}', style: const TextStyle(color: CC.textDim, fontSize: 13)),
+          if (r['note'] != null) Text('${r['note']}', style: const TextStyle(color: AC.textDim, fontSize: 13)),
           const SizedBox(height: 14),
           Row(children: [
-            Expanded(child: CCButton('Dismiss', outlined: true, onTap: () => _resolve(r['id'], 'DISMISSED'))),
+            Expanded(child: AButton('Dismiss', outlined: true, onTap: () => _resolve(r['id'], 'DISMISSED'))),
             const SizedBox(width: 10),
-            Expanded(child: CCButton('Action', onTap: () => _resolve(r['id'], 'ACTIONED', removeListing: r['targetType'] == 'LISTING'))),
+            Expanded(child: AButton('Action', onTap: () => _resolve(r['id'], 'ACTIONED', removeListing: r['targetType'] == 'LISTING'))),
           ]),
         ])));
       }).toList()),
