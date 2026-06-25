@@ -3,9 +3,14 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
-    // Firebase: processes the per-flavor google-services.json (Auth / Google
-    // sign-in / messaging). Project: campus-connect-84893.
-    id("com.google.gms.google-services")
+}
+
+// Firebase Google Services (Auth / Google sign-in / messaging, project
+// campus-connect-84893) is applied ONLY when a google-services.json is present.
+// The file is gitignored, so release CI builds without it; Firebase initialises
+// lazily via initFirebaseSafe() and those features stay off when absent.
+if (file("src/user/google-services.json").exists() || file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
 }
 
 android {
